@@ -1,0 +1,102 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0076)https://www.mimuw.edu.pl/~janowska/PW-LAB/04-java.util.concurrent/lab04.html -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <meta name="generator" content="pandoc">
+  <title>Pakiet java.util.concurrent (część 1)</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+  </style>
+</head>
+<body>
+<div id="header">
+<h1 class="title">Pakiet <code>java.util.concurrent</code> (część 1)</h1>
+</div>
+<p>Na trzecich zajęciach laboratoryjnych posługiwaliśmy się klasą <code>Semaphore</code> z pakietu <code>java.util.concurrent</code>. Pakiet ten dostarcza także innych narzędzi pomagających w programowaniu współbieżnym. Na laboratorium czwartym i piątym poznamy niektóre z nich.</p>
+<hr>
+<h1 id="bariera-cyclicbarrier">Bariera (<code>CyclicBarrier</code>)</h1>
+<p>Bariera jest narzędziem synchronizacyjnym wstrzymującym grupę wątków do chwili, gdy wszystkie osiągną wyznaczone miejsce w kodzie. Jej implementacja w klasie <code>java.util.concurrent.CyclicBarrier</code> ma konstruktor</p>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="bu">CyclicBarrier</span>(<span class="dt">int</span> parties)</code></pre></div>
+<p>budujący barierę synchronizującą grupę wątków o liczności <code>parties</code> oraz metodę</p>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="dt">int</span> <span class="fu">await</span>() <span class="kw">throws</span> <span class="bu">InterruptedException</span>, <span class="bu">BrokenBarrierException</span></code></pre></div>
+<p>sygnalizującą, że wątek osiągnął barierę.</p>
+<p>Jest też konstruktor</p>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="bu">CyclicBarrier</span>(<span class="dt">int</span> parties, <span class="bu">Runnable</span> barrierAction)</code></pre></div>
+<p>który buduje barierę wykonującą akcję <code>barrierAction</code> po przybyciu ostatniego wątku, ale przed zwolnieniem wszystkich.</p>
+<p>Obiekt klasy <code>CyclicBarrier</code> może być użyty jako bariera wielokrotnie. Po zwolnieniu grupy oczekujących wątków synchronizuje kolejną.</p>
+<p>Jeżeli któryś z wątków czekających na barierze zostanie przerwany, pozostałym zgłaszany jest wyjątek klasy <code>java.util.concurrent.BrokenBarrierException</code>.</p>
+<h2 id="przykład-1">Przykład 1</h2>
+<p>Program <a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/04-java.util.concurrent/przyklady/Przyk%C5%82ad1CyclicBarrier.java" class="uri">przyklady/Przykład1CyclicBarrier.java</a> demonstruje zastosowanie barier. Zwracamy uwagę, że <code>bariera1</code> jest użyta dwukrotnie.</p>
+<h2 id="zadanie-1">Zadanie 1</h2>
+<p>Dany jest program <a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/04-java.util.concurrent/zadania/Sekwencyjny.java" class="uri">zadania/Sekwencyjny.java</a> oraz przykładowa definicja klasy <a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/04-java.util.concurrent/zadania/Macierz.java" class="uri">zadania/Macierz.java</a>.</p>
+<p>Wyniki metody <code>Macierz.wartość()</code> interpretujemy jako macierz. Pierwszy argument jest numerem wiersza a drugi numerem kolumny.</p>
+<p>Nie będziemy korzystali z wiedzy o tym, jak klasa <code>Macierz</code> jest zdefiniowana. Zakładamy tylko, że obliczenie <code>Macierz.wartość()</code> może być kosztowne.</p>
+<h3 id="polecenie">Polecenie</h3>
+<p>Przekształć program <code>Sekwencyjny</code> na równoważny mu program, w którym wartości z tego samego wiersza macierzy będą liczone współbieżnie. Do synchronizacji wątków użyj bariery.</p>
+<h3 id="wskazówka">Wskazówka</h3>
+<p>Należy uruchomić <code>N_KOLUMN</code> wątków, z których każdy będzie liczył wartości z innej kolumny. Wątek odpowiedzialny za kolumnę <code>k</code> ma wpisywać obliczone wartości na pozycji <code>k</code> jednowymiarowej tablicy liczb całkowitych o długości <code>N_KOLUMN</code>. Po obliczeniu całego wiersza wypisujemy jego sumę i przechodzimy do kolejnego.</p>
+<h1 id="kolekcje-synchronizowane">Kolekcje synchronizowane</h1>
+<p>Metody standardowych kolekcji Javy, takich jak <code>ArrayList</code>, nie dają gwarancji poprawnego działania w programach wielowątkowych. Problem ten można rozwiązać, posługując się kolekcjami synchronizowanymi, budowanymi przez metody klasy <code>java.util.Collections</code>. Np. metoda</p>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="dt">static</span> &lt;T&gt; <span class="bu">List</span>&lt;T&gt; <span class="fu">synchronizedList</span>(<span class="bu">List</span>&lt;T&gt; list)</code></pre></div>
+<p>opakowuje listę przekazaną jako argument w listę bezpieczną dla programów wielowątkowych.</p>
+<h2 id="przykład-2">Przykład 2</h2>
+<p>Program <a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/04-java.util.concurrent/przyklady/Przyk%C5%82ad2SynchronizedList.java" class="uri">przyklady/Przykład2SynchronizedList.java</a> demonstruje zastosowanie listy synchronizowanej.</p>
+<h2 id="zadanie-2">Zadanie 2</h2>
+<h3 id="polecenie-1">Polecenie</h3>
+<p>Zmodyfikuj rozwiązanie poprzedniego zadania tak, by obliczone elementy wiersza były zapisywane nie w tablicy lecz w synchronizowanej liście.</p>
+<h1 id="zatrzask-countdownlatch">Zatrzask (<code>CountDownLatch</code>)</h1>
+<p>Bariera wstrzymuje wątek w oczekiwaniu na inne wątki. Innym narzędziem synchronizacyjnym jest zatrzask, który realizuje oczekiwanie na określoną liczbę zdarzeń.</p>
+<p>Zatrzask jest zaimplementowany w klasie <code>java.util.concurrent.CountDownLatch</code>. Jej konstruktor</p>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="bu">CountDownLatch</span>(<span class="dt">int</span> count)</code></pre></div>
+<p>buduje zatrzask wstrzymujący wątek w oczekiwaniu na <code>count</code> zdarzeń. Metoda</p>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="dt">void</span> <span class="fu">countDown</span>()</code></pre></div>
+<p>generuje jedno zdarzenie a metoda</p>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="dt">void</span> <span class="fu">await</span>() <span class="kw">throws</span> <span class="bu">InterruptedException</span></code></pre></div>
+<p>wstrzymuje wątek na zatrzasku.</p>
+<h2 id="przykład-3">Przykład 3</h2>
+<p>Program <a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/04-java.util.concurrent/przyklady/Przyk%C5%82ad3CountDownLatch.java" class="uri">przyklady/Przykład3CountDownLatch.java</a> demonstruje zastosowanie zatrzasku. Wynik programu nigdy nie będzie mniejszy niż <code>PO_ILU_POBUDKA</code>, ale może być od tej wartości większy.</p>
+<h2 id="zadanie-3">Zadanie 3</h2>
+<p>W rozwiązaniach dwóch pierwszych zadań wątek, który obliczył element macierzy, musiał czekać na zsumowanie wiersza.</p>
+<h3 id="polecenie-2">Polecenie</h3>
+<p>Napisz nową wersję programu, umożliwiającą obliczanie kolejnych wierszy bez konieczności oczekiwania na zsumowanie poprzednich.</p>
+<h3 id="wskazówka-1">Wskazówka</h3>
+<p>Zamiast jednej bariery i jednej synchronizowanej listy elementów aktualnego wiersza należy stworzyć, dla każdego wiersza, zatrzask i listę elementów. Wątek sumujący wiersze będzie wstrzymywany na kolejnych zatrzaskach do chwili obliczenia wszystkich wartości z danego wiersza.</p>
+
+
+</body></html>

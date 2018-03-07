@@ -1,0 +1,119 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title>Monitory</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+</head>
+<body>
+<div id="header">
+<h1 class="title">Monitory</h1>
+</div>
+<p>Na dzisiejszych zajęciach przedstawimy prymitywne (podstawowe) mechanizmy synchronizacji wątków w Javie. Są one uproszczoną formą monitorów. Za ich pomocą zrealizowano pakiet <code>java.util.concurrent</code>.</p>
+<hr />
+<h1 id="zamki">Zamki</h1>
+<p>Każdy obiekt w Javie ma zamek (ang. <em>lock</em>) używany przez wątki do rezerwowania dla siebie wyłącznego prawa korzystania z tego obiektu.</p>
+<p>Instrukcja</p>
+<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">synchronized</span> (obiekt) {
+    instrukcje
+}</code></pre>
+<p>sprawdza, czy aktualny wątek założył zamek na <code>obiekcie</code>. Jeśli tak, to wykonywane są <code>instrukcje</code>. Jeśli nie, wątek jest zawieszany do chwili, gdy na <code>obiekcie</code> nie będzie założonego zamka. Następnie na tym obiekcie zakładany jest zamek na czas wykonania <code>instrukcji</code>.</p>
+<p>Alternatywnym sposobem założenia zamka jest opatrzenie metody modyfikatorem <code>synchronized</code>. Daje to efekt taki, jak umieszczenie treści metody w instrukcji <code>synchronized</code> zakładającej zamek na obiekcie, dla którego ta metoda się wykonuje, czyli <code>this</code>, lub na klasie, jeśli jest to metoda statyczna.</p>
+<p>Zdjęcie zamka z obiektu, na którym czekają jakieś wątki, powoduje odwieszenie jednego z nich. To, który wątek z grupy oczekujących zostanie odwieszony, nie jest określone. W szczególności nie ma gwarancji, że będzie to ten wątek, który czekał najdłużej.</p>
+<h2 id="przykład">Przykład</h2>
+<p>Poniższy przykład demonstruje zastosowanie zamków.</p>
+<p>Dla definicji klasy <a href="przyklady/Para.java">przyklady/Para.java</a> program <a href="przyklady/TestPary.java">przyklady/TestPary.java</a> wypisuje <code>0</code>.</p>
+<p>Zwracamy uwagę, że tylko instrukcje <code>synchronized</code> oraz metody z modyfikatorem <code>synchronized</code> respektują zamki. Usunięcie modyfikatora z metody <code>zamień()</code> lub <code>sąRówne()</code> w klasie <code>Para&lt;T&gt;</code> powoduje, że wynik może być niezerowy.</p>
+<h1 id="wstrzymywanie-wątków">Wstrzymywanie wątków</h1>
+<p>Oprócz grupy wątków oczekujących na założenie zamka, obiekt w Javie ma też grupę wątków czekających na zdarzenie z tym obiektem związane.</p>
+<p>Mechanizm wstrzymywania wątków w oczekiwaniu na zdarzenie realizują, zdefiniowane w klasie <code>Object</code>, metody <code>wait()</code>, <code>notify()</code> i <code>notifyAll()</code>. Wątek może je wykonać na obiekcie tylko, jeśli założył na nim zamek.</p>
+<p>Wykonanie na obiekcie metody</p>
+<pre class="sourceCode java"><code class="sourceCode java"><span class="dt">void</span> <span class="fu">wait</span>()</code></pre>
+<p>powoduje zawieszenie aktualnego wątku w oczekiwaniu na zdarzenie związane z tym obiektem. Jednocześnie z obiektu zdejmowany jest zamek. Jeśli czekały na to jakieś wątki, jeden z nich jest budzony.</p>
+<p>Jeżeli na zdarzenie związane z obiektem nie czeka żaden wątek, to wykonanie metody</p>
+<pre class="sourceCode java"><code class="sourceCode java"><span class="dt">void</span> <span class="fu">notify</span>()</code></pre>
+<p>tego obiektu ma efekt pusty. W przeciwnym przypadku jeden z oczekujących na zdarzenie wątków jest przenoszony do grupy wątków oczekujących na założenie zamka na tym obiekcie. Nie jest określone, który z oczekujących wątków zostanie wybrany. Nie musi to być wątek czekający najdłużej.</p>
+<p>Metoda</p>
+<pre class="sourceCode java"><code class="sourceCode java"><span class="dt">void</span> <span class="fu">notifyAll</span>()</code></pre>
+<p>działa podobnie do <code>notify()</code>, ale do grupy wątków oczekujących na zamek przenosi wszystkie wątki, które czekają na zdarzenie związane z tym obiektem.</p>
+<p>Zwracamy uwagę na różnicę między opisanym mechanizmem a klasycznymi monitorami. W Javie budzony wątek musi konkurować z innymi wątkami o prawo do założenia zamka na obiekcie. Nie ma więc gwarancji, że w chwili, gdy uda mu się to zrobić warunek, na który czekał, nadal będzie spełniony. Z tego powodu wywołania <code>wait()</code> umieszcza się zwykle w pętli sprawdzającej spełnienie warunku.</p>
+<p>Umieszczenie wywołań <code>wait()</code> w pętli jest też wskazane ze względu na możliwość wystąpienia zjawiska <em>spontanicznego budzenia</em> wątków. Definicja maszyny wirtualnej dopuszcza sytuację, w której wątek zostanie obudzony z operacji <code>wait()</code> mimo, że nie wykonano ani metody <code>notify()</code> ani <code>notifyAll()</code>.</p>
+<p>Nawet, jeżeli chcemy obudzić jeden wątek, często używamy do tego metody <code>notifyAll()</code>. Jest to konieczne, jeżeli wątki czekają na różne zdarzenia związane z tym samym obiektem. Wszystkie wątki są wówczas budzone i sprawdzają warunek w pętli. Jeżeli mogą kontynuować wykonanie, robią to, w przeciwnym przypadku ponownie wywołują <code>wait()</code>.</p>
+<p>Użycie <code>notifyAll()</code> pozwala też uniknąć problemu <em>zagubionego budzenia</em>. W przypadku, gdy użycie <code>notify()</code> zbiegnie się w czasie z przerwaniem budzonego wątku, może się zdarzyć, że żaden wątek nie zostanie obudzony z wykonania <code>wait()</code>.</p>
+<h2 id="przykład-1">Przykład</h2>
+<p>Definicja klasy <a href="przyklady/Pudełko.java">przyklady/Pudełko.java</a> wraz z programem <a href="przyklady/TestPudełka.java">przyklady/TestPudełka.java</a> demonstruje zastosowanie wstrzymywania wątków.</p>
+<h1 id="zadanie-1">Zadanie 1</h1>
+<p>Dany jest interfejs <a href="zadania/Worek.java">zadania/Worek.java</a>.</p>
+<p>Metoda <code>włóż()</code> wkłada argument do worka. W worku może być wiele egzemplarzy obiektu. Równość obiektów sprawdzamy metodą <code>equals()</code>.</p>
+<p>Metoda <code>wyjmij()</code> czeka, aż obiekt będący argumentem znajdzie się w worku i wyjmuje z worka jeden jego egzemplarz.</p>
+<h2 id="polecenie">Polecenie</h2>
+<p>Zdefiniuj klasę implementującą interfejs <code>Worek&lt;T&gt;</code>.</p>
+<h2 id="wskazówka">Wskazówka</h2>
+<p>Zadanie to należy rozwiązać, nie korzystając z pakietu <code>java.util.concurrent</code>.</p>
+<p>W pierwszym podejściu do rozwiązania, wszystkie wątki mogą czekać w jednej grupie. Wersja ostateczna powinna jednak być bardziej efektywna. Wątki należy w niej podzielić na grupy na podstawie obiektu, który chcą wyjąć z worka.</p>
+<h1 id="zadanie-2">Zadanie 2</h1>
+<p>W systemie <code>N</code> grup wątków korzysta z <code>K</code> zasobów zarządzanych przez obiekt klasy <code>Serwer</code>. Liczba wątków w poszczególnych grupach nie jest znana. Przyjmujemy, że grupy i zasoby numerowane są kolejnymi liczbami całkowitymi od <code>0</code>.</p>
+<p>Każdy wątek wykonuje</p>
+<pre class="sourceCode java"><code class="sourceCode java"><span class="kw">class</span> Zadanie <span class="kw">implements</span> Runnable {
+
+    <span class="kw">private</span> <span class="dt">final</span> <span class="dt">int</span> grupa;
+    <span class="kw">private</span> <span class="dt">final</span> Serwer serwer;
+
+    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">własneSprawy</span>() {
+        ...
+    }
+
+    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">korzystam</span>(<span class="dt">int</span> zasób) {
+        ...
+    }
+
+    <span class="kw">public</span> <span class="fu">Zadanie</span>(<span class="dt">final</span> <span class="dt">int</span> grupa, <span class="dt">final</span> Serwer serwer) {
+        <span class="kw">this</span>.<span class="fu">grupa</span> = grupa;
+        <span class="kw">this</span>.<span class="fu">serwer</span> = serwer;
+    }
+
+    <span class="fu">@Override</span>
+    <span class="kw">public</span> <span class="fu">run</span>() {
+        <span class="kw">while</span> (<span class="kw">true</span>) {
+            <span class="fu">własneSprawy</span>();
+            <span class="dt">int</span> zasób = serwer.<span class="fu">chc</span>ęKorzystać(grupa);
+            <span class="fu">korzystam</span>(zasób);
+            serwer.<span class="fu">skończyłem</span>(grupa, zasób);
+        }
+    }
+
+}</code></pre>
+<p>Zasady korzystania z zasobów są następujące:</p>
+<ul>
+<li><p>Dwie grupy nie korzystają jednocześnie z tego samego zasobu.</p></li>
+<li><p>Wątki z jednej grupy korzystają w danej chwili z co najwyżej jednego zasobu.</p></li>
+<li><p>Jeżeli jakiś zasób jest wolny, to żaden wątek, który chce korzystać z zasobu, nie czeka.</p></li>
+</ul>
+<h2 id="polecenie-1">Polecenie</h2>
+<p>Zdefiniuj klasę Serwer w taki sposób, aby powyższe warunki były spełnione.</p>
+<p>Czy Twoje rozwiązanie gwarantuje, że żaden wątek nie zostanie zagłodzony ? Jeśli nie, to jak należałoby je zmienić, by do zagłodzenia nie mogło dojść ?</p>
+<h2 id="wskazówka-1">Wskazówka</h2>
+<p>Zadanie to należy rozwiązać, nie korzystając z pakietu <code>java.util.concurrent</code>.</p>
+</body>
+</html>

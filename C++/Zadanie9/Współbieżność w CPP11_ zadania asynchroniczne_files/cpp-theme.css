@@ -1,0 +1,6 @@
+pre { background-color:#FFFFFF;
+      line-height: 70%;
+}
+pre span.org-keyword { font-weight: bold; } 
+pre span.org-comment { font-style: italic; color: #777; }
+pre span.org-string { color: #777; }

@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html><link type="text/css" id="dark-mode" rel="stylesheet" href=""><style type="text/css" id="dark-mode-custom-style"></style><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>lab12-c-sygnały</title>
+
+<meta name="author" content="Marcin Przybylko dostosowal poprzednie wersje scenariusza do sygnalow">
+<meta lang="pl">
+<style>
+body {
+  max-width: 1000px;
+  background-color: #EEEEEE;
+  color: black;
+}
+p {
+  text-align: justify;
+  margin-left: 15px;
+}
+
+code {
+  font-family: monospace;
+}
+
+div.myCode{
+  background-color: white;
+  border: 1px solid black;
+  white-space : pre;
+  margin-left: 15px;
+  padding: 10px;
+}
+</style>
+
+</head>
+
+
+<body>
+
+<h1 id="h1_spis">Spis treści</h1>
+<ul>
+<!--
+<li><a href="#h1_wstep">Wstęp</a></li>
+-->
+<li><a href="#h1_sygnaly">Sygnały</a></li>
+<li><a href="#h1_wysylanie">Wysyłanie i odbiór sygnałów</a></li>
+<li><a href="#h1_blokowanie">Blokowanie sygnałów</a></li>
+<li><a href="#h1_zmiana">Zmiana standardowej obsługi</a></li>
+<li><a href="#h1_przyklad">Przykład</a></li>
+<li><a href="#h1_zadanie">Zadanie</a></li>
+</ul>
+<!--
+WSTEP
+-->
+<!--
+<h1 id="h1_wstep">Wstęp</h1>
+<p>
+Jako, że procesy mają oddzielne przestrzenie adresów ich synchronizacja i 
+komunikacja wymagają zewnętrznych narzędzi i mechanizmów zapewnionych przez środowisko (np. system operacyjny).
+Zbiór tych mechanizmów nosi miano <i>komunikacji międzyprocesowej</i> (ang. <i>InterProcess Communication (IPC)</i>).
+Jednym z mechanizmów IPC są poznane wcześniej <i>łącza nienazwane</i>
+(<a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/11-c-procesy/lab11.html#sec-3">pipes</a>), inne to między innymi
+<ul>
+<li>łącza nazwane (<a href="http://man7.org/linux/man-pages/man7/pipe.7.html">fifo</a>),</li>
+<li>kolejki komunikatów (<a href="http://man7.org/linux/man-pages/man7/mq_overview.7.html">msg queues</a>),</li>
+<li>pamięć dzielona(<a href="">shared memory</a>),</li>
+<li>semafory (<a href="">semaphore</a>),</li>
+<li>czy sygnały(<a href="#h1_sygnaly">signals</a>).</li>
+</ul>
+</p>
+<p>
+Na tych zajęciach skupimy się na sygnałach, czyli na prostej
+asynchronicznej komunikacji międzyprocesowej.
+Na następnych zajęciach omówimy semafory i pamięć dzieloną. 
+Kolejki komunikatów i łącza nazwane pominiemy, ze względu na brak czasu.
+</p>
+-->
+<!--
+SYGNALY OPIS
+-->
+<h1 id="h1_sygnaly">Sygnały</h1>
+
+<p>
+
+Sygnały są najprostszą metodą komunikacji międzyprocesowej.
+Istniały (w mniej rozbudowanej niż obecnie postaci) już w 
+pierwszych wersjach Uniksa. Niestety pierwotna implementacja,
+tzw. sygnały zawodne, nie dawała programiście gwarancji 
+ich poprawnego przechwycenia i obsługi.
+</p>
+<p>
+Rozpowszechnienie Uniksa wraz z kodem źródłowym spowodowało 
+m.in. to, że w różnych dystrybucjach różnie próbowano naprawić
+pierwotny błąd projektowy. Doprowadziło to niestety do 
+bardzo różnych, niezgodnych semantycznie, sposobów obsługi 
+sygnałów. 
+</p>
+<p>
+Sytuację poprawiło przyjęcie standardu POSIX (Portable Operating
+System Interface), znanego także pod nazwą IEEE 1003. Ponieważ
+standard definiowany przez POSIX jest obecnie przestrzegany przez
+niemal wszystkie wersje Uniksa (również Linux), dlatego kod powinien
+być tworzony zgodnie z tym interfejsem.
+</p>
+
+<p>W tym scenariuszu opiszemy mechanizmy i narzędzia związane z przesyłaniem 
+sygnałów zgodnych ze standardem POSIX między jednowątkowymi procesami w środowisku Linux.
+Przesyłanie sygnałów między procesami wielowątkowymi i w innych systemach (częściowo) 
+zgodnych z POSIX odbywa się&nbsp;w podobny sposób, ale występują pewne subtelności, które
+zostały pominięte w tym scenariuszu, np. w przypadku procesów wielowątkowych: który z wątków odbiera nadesłany sygnał.</p>
+
+<h2>Sposób działania sygnałów zgodnych ze standardem POSIX</h2>
+
+<p>
+Proces przesyłając sygnał do innego procesu rejestruje informację, że
+sygnał został wysłany i na tym kończy interakcję. Adresat sygnału, a właściwie jądro systemu, 
+rejestruje informacje o sygnale i oznacza go jako nieobsłużony.
+Nieobsłużony, nieblokowany sygnał zostanie obsłużony przy najbliższej,
+możliwej okazji. Podczas obsługi sygnału proces może wykonać jedną z trzech operacji:
+</p><ul>
+  <li>zignorować sygnał,</li>
+  <li>spowodować, że jądro wykona specjalną część procesu zanim pozwoli 
+  procesowi kontynuować działanie,</li>
+  <li>pozwolić, aby jądro wykonało domyślną akcję, która zależy od 
+  rodzaju wysłanego sygnału</li>
+</ul><p></p>
+
+
+<p>Uwaga! Ze względów bezpieczeństwa dwa sygnały <code>SIGKILL</code> i
+<code>SIGSTOP</code> nie mogą&nbsp;być blokowane, ignorowane i zawsze wykonają swoje standardowe funkcje obsługi.
+Te akcje to, odpowiednio, wymuszone zakończenie procesu (<code>Term</code>) i wstrzymanie procesu (<code>Stop</code>).</p>
+
+<h2>Standard vs Real-time</h2>
+
+<p>Obecnie występują dwa typy sygnałów ``stare'' tzw. standardowe sygnały i tzw.
+sygnały czasu rzeczywistego (ang. <i>real-time signals</i>, albo <i>rt signals </i>).
+By uzyskać listę sygnałów dostępnych w Twoim systemie w terminalu wykonaj
+</p>
+<div class="myCode"><code>$ kill -l</code></div>
+<p><i>Real-time signals</i> są to sygnały o numerach w zakresie <code>SIGRTMIN</code> i <code>SIGRTMAX</code>.
+Pozostałe sygnały to sygnały standardowe i ich mnemoniki -- nazwy stałych reprezentujących sygnał.</p>
+
+
+<p>Standardowe sygnały wywodzą się z wczesnych etapów Unixa i w związku z tym mają przypisane zwyczajowe nazwy i znaczenia.
+Są one związane z oryginalnym przeznaczeniem tych sygnałów, np. <code>SIGSTOP</code>
+to sygnał wstrzymujący proces, <code>SIGKILL</code> to sygnał kończący proces, <code>SIGCHLD</code> to sygnał informujący o tym, że dziecko zostało wstrzymane lub zakończone,
+a <code>SIGPIPE</code> to informacja o tym, że łącze nie ma otwartych 
+deskryptorów od odczytu. 
+W związku z tym predefiniowanym znaczeniem, każdy z tych sygnałów ma 
+przypisaną&nbsp;standardową funkcję obsługi adekwatną do sygnału.
+</p>
+<p>
+Proces informacje o nadesłanych standardowych sygnałach przechowuje 
+w postaci zbioru, co oznacza, że proces nie wie czy sygnał, ktory wciąż
+oczekuje na obsługę, został wysłany raz czy wiele razy, przez jednego
+czy przez wielu nadawców. Konsekwencją tego sposobu przechowywania danych jest to,
+że obsługa wielokrotnie nadesłanego sygnału może zostać uruchomiona tylko raz.
+Co więcej, kolejność obsługi tych sygnałów nie jest zdefiniowana.
+</p>
+
+<p>
+Sygnały z drugiej grupy, tj. <i>real-time signals</i>, nie mają związanego
+pierwotnego znaczenia i są traktowane jako grupa sygnałów definiowanych przez użytkownika,
+tj. sygnały te nie mają przypisanych standardowych znaczeń, i mają jedną
+&nbsp;wspolny&nbsp;standardowy sposob obsługi -- zakończenie procesu (Term).
+Co więcej, sygnały te różnią się&nbsp;od poprzedników w trzech aspektach:
+</p><ul>
+<li>każda instancja sygnału jest rejestrowana i przechowywana,</li>
+<li>wraz z sygnałem można przesłać dodatkową informację,</li>
+<li>kolejność obsługi sygnałów jest zdefiniowana: niższe numery sygnałów 
+mają priorytet, w razie współdzielenia numeru wcześniejsza instancja sygnału ma priorytet.</li>
+</ul>
+<p></p>
+
+<h2>Przerywanie innych funkcji</h2>
+
+<p>Jako, że to system decyduje, kiedy obsłużyć dany sygnał,&nbsp;może się&nbsp;zdarzyć, że 
+wywołanie funkcji obsługi nastąpi w czasie gdy proces oczekuje na zewnętrzne zdarzenie (np. podczas 
+funkcji <code>read</code>, gdy proces oczekuje na pojawienie się danych w łączu), a nawet w trakcie obsługi innego sygnału.
+By zapobiec nieoczekiwanym i/lub niepożądanym przerwaniom, związanym z obsługą sygnałów,&nbsp;proces może zażądać
+blokady wskazanej grupy sygnałów. Robi to definiując tzw. <i>maskę sygnałów</i>. Zablokowane procesy 
+będą dostarczane do procesu, ale ich obsługa zostanie wstrzymana do momentu zdjęcia blokady.
+Uwaga: podczas obsługi sygnału jest on włączany do maski sygnałów, chyba, że proces zdecyduje inaczej.
+</p>
+<p>
+Co prawda blokada sygnałów pozwala na tymczasowe wstrzymanie przerwań, ale
+to nie rozwiązuje problemu przerwania działania pewnych funkcji systemowych.
+Pierwotnie funkcje systemowe podzielono na
+funkcje wolne i szybkie. Z grubsza wolne funkcje systemowe to te,
+które mogą długo wstrzymywać proces (<code>read</code> z konsoli), a szybkie to te,
+które nie będą wstrzymywać procesów długo (<code>read</code> z pliku).
+</p><p>
+W pierwotnej implementacji sygnałów wolne funkcje systemowe były
+przerywane przez sygnały. W zależności od wersji systemu kończyły 
+się one wówczas przekazując w wyniku błąd <code>EINTR</code> lub też - po obsłudze
+sygnału - były automatycznie wznawiane.
+Szybkie funkcje systemowe były nieprzerywalne - kończyły działanie
+zanim sygnał został dostarczony do procesu. Obsługa błędu <code>EINTR</code> i
+wznowienie funkcji systemowej w razie konieczności było zadaniem
+procesu. Takie podejście zapewniało odpowiednią funkcjonalność, ale
+utrudniało pisanie programów.
+</p>
+<p>
+POSIX nie określa, które z powyższych zachowań jest słuszne, lecz
+pozwala programiście zdecydować, jak ma się zachować proces.  Dla
+każdego sygnału proces może ustawić flagę, która wskazuje, czy funkcja
+systemowa przerwana przez ten sygnał ma być automatycznie wznawiana
+przez system.  
+</p>
+
+<h2>Dobre rady</h2>
+
+<p>
+Ponieważ funkcje obsługi sygnałów mogą być wykonywane w dowolnej
+chwili, nie należy przy ich pisaniu przyjmować jakichkolwiek założeń
+co do tego, co w chwili ich wywołania robi program. Nie mogą one też
+dokonywać zmian, które mogłyby zakłócić wykonywanie dalszej części
+programu.
+</p>
+<p>
+Jedną z najważniejszych rzeczy, na którą należy zwrócić uwagę, jest
+zmiana globalnych danych. Jeżeli nie jest wykonana wystarczająco
+uważnie, to może doprowadzić do sytuacji wyścigu.  Najprostszym
+sposobem zapewnienia bezpieczeństwa globalnych danych jest nie
+stosowanie ich w programie. Inną metodą jest blokowanie wszystkich
+sygnałów, których obsługa modyfikuje struktury danych, na czas
+zmieniania struktur przez resztę programu, zapewniając w ten sposób,
+że w danej chwili tylko jeden fragment kodu operuje na tych
+strukturach.
+</p>
+
+
+<!--
+WYSYLANIE
+-->
+<h1 id="h1_wysylanie">Wysyłanie i odbiór sygnałów</h1>
+
+<p>
+Aby wysłać sygnał do innego procesu należy wywołać funkcję <code><a href="http://man7.org/linux/man-pages/man2/kill.2.html">kill</a></code>
+</p>
+<div class="myCode"><code>int <b>kill</b>(pid_t <b>pid,</b> int <b>sig</b>);</code></div>
+<p>
+gdzie 
+</p><ul>
+<li><code>pid</code> to identyfikator procesu do którego chcemy wysłać sygnał,</li>
+<li>a <code>sig</code> to numer sygnału.</li>
+</ul>
+<p></p>
+<p>
+W przypadku niepowodzenia <code>kill</code> zwraca wartość <code>-1</code>
+i ustawia odpowiednią wartość zmiennej <code>errno</code>.
+W razie powodzenia, funkcja zwraca <code>0</code>, a w strukturze adresata
+zbiór sygnałów oczekujących na obsługę jest uzupełniany o przesłany sygnał.
+Zostanie on obsłużony przy najbliższej okazji. W przypadku przesyłania sygnału do
+<code>zombie</code>, przesłanie zakończy się sukcesem ale sygnał nie zostanie
+obsłużony. Przesłanie sygnału do nieistniejącego procesu zwroci błąd
+i ustawi <code>errno</code> na <code>ESRCH</code>.
+</p>
+
+<p>
+Kompletną&nbsp;listę obsługiwanych sygnałów można znaleźć&nbsp;w pliku nagłówkowym <code>bits/signum.h</code>,
+w odpowiednim rozdziale podręcznika systemowego, dotyczącym sygnałów <a href="http://man7.org/linux/man-pages/man7/signal.7.html">man 7 signal</a>,
+lub poleceniem
+</p>
+<div class="myCode"><code>$ kill -l</code></div>
+<p>
+w terminalu.
+</p>
+<!--
+BASH
+-->
+<h2 id="h2_bash_kill">Wysyłanie sygnałów w terminalu.</h2>
+<p>Jeśli znamy identyfikator <code>pid</code> procesu, możemy wysłać&nbsp;sygnał o numerze <code>sig</code>
+z wykorzystaniem terminala. Wystarczy wykonać&nbsp;polecenie
+</p>
+<div class="myCode"><code>$ kill -sig pid</code></div>
+<p>
+W terminalu można także wykorzystać skróty klawiszowe by wysłać sygnał uruchomionemu i wciąż działającemu programowi, np. <code>Ctrl + c</code> wysyła 
+sygnał <code>SIGINT</code>, a <code>Ctrl + \</code> sygnał <code>SIGQUIT.</code>
+
+</p><!--
+BLOKOWANIE
+-->
+
+<h1 id="h1_blokowanie">Blokowanie sygnałów</h1>
+<p>
+Proces może wstrzymać&nbsp;obsługę&nbsp;pewnych sygnałów.
+Dokonuje tego poprzez poinformowanie systemu, które sygnały należy chwilowo blokować.
+Sygnały te są&nbsp;nadal dostarczane i rejestrowane ale ich obsługa
+jest odraczana do momentu zniesienia blokady.
+</p>
+
+<h2>Zbiory sygnałów</h2>
+<p>
+  Zbiór zablokowanych sygnałów jest trzymany w w zmiennej typu <code>sigset_t</code>,
+na której mamy zdefiniowane operacje <a href="http://man7.org/linux/man-pages/man3/sigsetops.3.html">sigsetops</a>,
+te operacje to odpowiednio:
+</p>
+<div class="myCode"><code>
+int sigemptyset(sigset_t *set);
+    // set staje się&nbsp;pustym zbiorem
+int sigfillset(sigset_t *set);
+    // set staje się&nbsp;zbiorem zawierającym wszystkie sygnały
+int sigaddset(sigset_t *set, int signum);
+    //dodaj signum do zbioru set
+int sigdelset(sigset_t *set, int signum);
+    // usuń signum ze zbioru set
+int sigismember(const sigset_t *set, int signum);  
+    //czy signum jest w zbiorze set?
+</code></div>
+<p>
+Cztery pierwsze funkcje zwracają&nbsp;<code>0</code> w wypadku powodzenia i <code>-1</code> w przypadku błędu.
+Funkcja <code>sigismember</code> sprawdza czy sygnał <code>signum</code>
+jest w zbiorze <code>set</code> i zwraca <code>1</code> jeśli jest, <code>0</code> jeśli nie ma i <code>-1</code> w przypadku błędu.
+</p>
+<h2>Zmiana maski sygnałów</h2>
+<p>Obecnie blokowane sygnały są&nbsp;przechowywane w zbiorze nazywanym <i>maską sygnałów</i>. 
+Maskę można uaktualnić przez wywołanie funkcji <code><a href="http://man7.org/linux/man-pages/man2/sigprocmask.2.html">sigprocmask</a></code></p>
+
+<div class="myCode"><code>int sigprocmask(int how, const sigset_t *set, sigset_t *oldset);</code></div>
+<p> gdzie
+</p><ul>
+  <li><code>set</code> to zbiór sygnałów mający zmodyfikować maskę,</li>
+  <li><code>oldset</code> to zbiór sygnałów obecnej maski,</li>
+  <li>a <code>how</code> to informacja w jaki sposób należy zmodyfikować maskę:
+  <ul>
+  <li>jeśli <code>how == SIG_BLOCK</code> to nowa maska jest sumą&nbsp;starej maski i <code>set</code>,</li>
+  <li>jeśli <code>how == SIG_UNBLOCK</code> to nowa maska jest różnicą starej maski i <code>set</code>,</li>
+  <li>jeśli <code>how == SIG_SETMASK</code> to nowa maska to zbiór <code>set</code>.</li>
+  </ul>
+  </li>
+</ul>
+<p></p>
+<p>
+Uwaga: jeśli <code>set == NULL</code> to <code>how</code> jest ignorowane i maska pozostaje niezmieniona,
+jeśli <code>oldset != NULL</code> to obecna maska jest zapisywana na <code>oldset</code>.
+</p>
+
+<h2>Zablokowane sygnały</h2>
+
+<p>
+Zablokowane sygnały są rejestrowane ale oczekują na odblokowanie by zostać odebrane i wykonać odpowiednią akcję.
+Oczekujące sygnały możemy poznać wykonując funkcję <a href="http://man7.org/linux/man-pages/man2/sigpending.2.html">sigpending</a> lub funkcję <a href="http://man7.org/linux/man-pages/man2/sigwaitinfo.2.html">sigwaitinfo</a>.
+</p>
+
+<p>
+Funkcja <a href="http://man7.org/linux/man-pages/man2/sigpending.2.html">sigpending</a> ma następującą deklarację.
+</p>
+<div class="myCode"><code>int sigpending(sigset_t *set);</code></div>
+<p> gdzie </p>
+<ul>
+  <li><code>set</code> to wskaźnik na zbiór sygnałów.</li>
+</ul>
+<p>
+Funkcja ta zapisuje do zbioru <code>set</code> sygnały oczekujące na odebranie, tj. takie ktore zostały zarejestrowane
+ale są zablokowane i oczekują na odebranie.
+</p>
+<p>
+W przypadku sukcesu funkcja nadpisuje zbiór <code>set</code> i zwraca <code>0</code>, 
+w przypadku błędu funkcja zwraca <code>-1</code> i ustawia odpowienią&nbsp;wartość <code>errno</code>.
+</p>
+
+<p>
+Funkcja <a href="http://man7.org/linux/man-pages/man2/sigwaitinfo.2.html">sigwaitinfo</a> ma następującą deklarację.
+</p>
+<div class="myCode"><code>int sigwaitinfo(const sigset_t *set, siginfo_t *info);</code></div>
+<p> gdzie </p>
+<ul>
+  <li><code>set</code> to wskaźnik na zbiór sygnałów,</li>
+  <li><code>set</code> to wskaźnik na strukturę przechwoującą informacje o sygnale.</li>
+</ul>
+<p>
+Powyższa funkcja wstrzymuje wykonanie procesu dopóki jeden z sygnałów wskazanych w <code>set</code> nie 
+zostanie zarejestrowany (jeśli jakiś sygnał ze zbioru już oczekuje na odebranie to funkcja nie wstrzymuje procesu
+tylko wraca natychmiast).
+</p>
+<p>
+W przypadku powodzenia funkcja usuwa pewien sygnał z listy oczekujących i zwraca jego numer. Dodatkowo, jeśli <code>info</code>
+nie jest <code>NULL</code>em to informacje o odebranym sygnale zostają zapisane do struktury <code>siginfo_t</code>
+pod adresem <code>info</code>. W przypadku błędu funkcja zwraca <code>-1</code> i ustawia odpowienią wartość <code> errno</code>.
+</p>
+
+<p>
+O strukturze <code>siginfo_t</code> trochę później.
+</p>
+
+
+<h2>Przykład: blokowanie sygnałów</h2>
+
+<p>Poniższy kod zablokuje sygnał <code>SIGINT</code> na ok. 5 sekund.
+Po tym czasie odblokuje ten sygnał i poinformuje czy podczas blokady ten sygnał został 
+przesłany.</p>
+
+<div class="myCode"><code>
+//signal_mask.c
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;signal.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;sys/wait.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;string.h&gt;
+
+#include "err.h"
+
+
+int main(void){
+  
+  sigset_t block_mask, pending_mask;
+
+  sigemptyset (&amp;block_mask);
+  sigaddset(&amp;block_mask, SIGINT);                        /*Blokuję SIGINT*/
+  if (sigprocmask(SIG_BLOCK, &amp;block_mask, 0) == -1)
+    syserr("sigprocmask block");
+  
+  printf("Mój pid to %d\n", getpid());
+  printf("Przez 5 sekund będę&nbsp;blokował sygnał %s\n", strsignal(SIGINT));
+  printf("Wciśnięcie Ctrl + c spowoduje wysłanie tego sygnału.\n");
+  
+  sleep(5);
+  
+  printf("Zakończyłem blokowanie.\n");
+  
+  if (sigpending(&amp;pending_mask) == -1)
+    syserr("sigpendind");
+  if (sigismember(&amp;pending_mask, SIGINT)){
+    printf("Wysłano sygnał %s\n", strsignal(SIGINT));
+    printf("Teraz go odblokuję i zakończę działanie\n");
+  }
+  
+  if (sigprocmask(SIG_UNBLOCK, &amp;block_mask, 0) == -1)
+    syserr("sigprocmask unblock");  
+  
+  printf("Nie otrzymałem sygnału, wyślij sygnał by zakończyć\n");
+  
+  pause(); /*pause nie wróci, jeśli domyślna akcja dla sygnału to zakończ*/
+  printf("Pause zostało odebrane\n");
+  
+  return 0;
+}
+
+</code></div>
+
+<!--
+ZMIANA OBSLUGI
+-->
+
+<h1 id="h1_zmiana">Zmiana standardowej obsługi</h1>
+<p>
+Sygnały możemy nie tylko blokować ale możemy też całkowicie zmienić sposób 
+obsługi przechwyconego sygnału. Każdy sygnał ma przypisaną&nbsp;jedną&nbsp;z pięciu standardowych (ang. default)
+funkcji&nbsp;wykonywanych podczas standardowej obsłudze sygnału:
+
+</p><ul>
+<li><code>Term</code> - zakończ proces,</li>
+<li><code>Ign</code> - zignoruj sygnał,</li>
+<li><code>Core</code> - zakończ proces i dokonaj zrzutu pamięci,</li>
+<li><code>Stop</code> - wstrzymaj proces (proces może zostać&nbsp;wznowiony przy pomocy <code>Cont</code>,</li>
+<li><code>Cont</code> - wznów proces, jeśli był zatrzymany.</li>
+</ul>
+<p></p>
+<p> Pełną listę sygnałów wraz ze standardowym sposobem obsługi można znaleźć w dokumentacji lub
+w <a href="http://lxr.linux.no/linux+v4.9/include/linux/signal.h#L316">pliku źródłowym jądra</a>.
+</p>
+<p>
+Sposób obsługi sygnału jest przechowywany w specjalnej strukturze <code><a>struct sigaction</a></code>,
+której dokładna definicja może się&nbsp;różnić&nbsp;w zależności od systemu i architektury ale powinna zawierać&nbsp;
+co najmniej te pola:
+</p>
+<div class="myCode"><code>struct sigaction {
+  void       (*sa_handler)(int);
+  void       (*sa_sigaction)(int, siginfo_t *, void *);
+  sigset_t   sa_mask;
+  int        sa_flags;
+  void       (*sa_restorer)(void);
+};
+</code></div>
+<p>
+</p><ul>
+  <li>
+  
+    <code>sa_flags</code> to bitowa unia flag modyfikujących sposób obsługi sygnału. Interesujące flagi to m.in.
+  <ul>
+    <li><code>SA_NODEFER</code> - nie blokuj tego sygnału podczas obsługi,</li>
+    <li><code>SA_SIGINFO</code> - wykorzystaj pole  <code>sa_sigaction</code> zamiast pola <code>sa_hanldler</code> podczas obsługi sygnału,</li>
+    <li><code>SA_RESTART</code> - jeśli sygnał przerwie blokujące wywołanie funkcji (np. <code>read</code>) wznów funkcję po obsłudze sygnału (uwaga! dokładne zachowanie może zależeć od implementacji!),</li>
+    <li><code>SA_RESETHAND</code> - po jednorazowej obsłudze sygnału, przywróć standardowy sposób obsługi,</li>
+    <li><code>SA_NOCHLDWAIT</code> - nie zamieniaj dzieci w <code>zombie</code>, ma znaczenie tylko przy zmianie obsługi sygnału <code>SIGCHLD.</code></li>
+  </ul>
+  </li>
+  <li><code>sa_mask</code> to zbiór sygnałów, które będą&nbsp;zablokowane podczas
+    obsługi sygnału. Jeśli flaga <code>SA_NODEFER</code> nie jest ustawiona,
+    do tego zbioru dołączany jest obsługiwany sygnał.</li>
+
+  <li><code>sa_hanlder</code> to sposób obsługi sygnału; sygnał może
+  <ul>
+    <li>być&nbsp;ignorowany: <code>sa_handler = SIG_IGN</code></li>
+    <li>być obsługiwany&nbsp;w standardowy sposób: <code>sa_handler = SIG_DFL</code></li>
+    <li>lub być&nbsp;obsługiwany za pomocą&nbsp;zdefiniowanej przez użytkownika funkcji typu <code> void foo(int signo);</code>: <code>sa_handler = foo</code>.
+    Ta funkcja przyjmuje jeden argument -- numer obsługiwanego sygnału.</li>
+  </ul>
+  </li>
+  <li><code>sa_sigaction</code> to alternatywna definicja sposobu obsługi, 
+  która jest używana zamiast <code>sa_hanlder</code>, tylko gdy 
+  została zdefiniowana flaga <code>SA_SIGINFO</code>.
+  Wartością pola jest funkcja o deklaracji <code> void foo(int signo, siginfo_t * sa_info, void * sa_data);</code>, gdzie 
+  <ul>
+    <li><code>signo</code> &nbsp;to numer sygnału,</li> 
+    <li><code>sa_info</code> do dodatkowa, rozbudowana, struktura zawierające pomocnicze informacje;
+    w naszym przypadku (sygnały wysyłane funkcją <code>kill</code>) 
+    interesujące pola tej struktury to np. <code>pid_t si_pid</code> - pid procesu wysyłającego sygnał
+    i  <code>uid_t si_uid</code> - identyfikator użytkownika do którego należał proces wysyłający sygnał.</li> 
+    <li><code>sa_context</code> to dodatkowy kontekst wywołania, dla nas nieinteresujący.</li>
+  </ul>
+  </li>
+  <li><code>sa_restorer</code> to pole nie zdefiniowane w POSIX i nie przeznaczone do wykorzystywania w aplikacjach.</li>
+</ul>
+<p></p>
+<p>
+Pełniejszy opis struktury <code>struct sigaction</code> można znaleźć w 
+rozdziale podręcznika systemowego, np. <a href="http://man7.org/linux/man-pages/man2/rt_sigaction.2.html">man 2 sigaction</a>.
+</p>
+<p>
+<b>Uwaga!</b> W niektórych implementacjach <code>sa_handler</code> i <code>sa_sigaction</code> są zdefiniowane jako <code>unia</code>, dlatego
+nie powinno się&nbsp;definiować obu pól w pojedynczej strukturze.
+</p>
+<p>
+Aby zarejestrować&nbsp;nowy sposób obsługi sygnału należy wywołać&nbsp;funkcję 
+<code><a href="http://man7.org/linux/man-pages/man2/rt_sigaction.2.html">sigaction</a></code>
+</p>
+<div class="myCode"><code>int sigaction(int signum, const struct sigaction *act,
+                     struct sigaction *oldact);</code></div>
+<p>gdzie
+</p><ul>
+<li><code>signum</code> to numer sygnału, którego obsługę&nbsp;chcemy zmienić,</li>
+<li><code>oldact</code> to miejsce gdzie chcemy zachować dotychczasowy sposób 
+obsługi sygnału; jeśli <code>oldact == NULL</code> to dotychczasowy sposób nie zostanie zapisany,</li>
+<li><code>act</code> to nowy sposób obsługi; jeśli <code>act == NULL</code> to nowy sposób nie zostanie zarejestrowany.</li>
+</ul>
+<p></p>
+
+<p>Należy pamiętać, że obsługa sygnału przerywa standardowy przebieg procesu
+w dowolnym momencie i powinna być traktowana jako zdarzenie wyjątkowe.
+Z tego powodu kod funkcji obsługi powinien być możliwie krótki, zwięzły 
+i nie wywoływać zbyt wielu efektów ubocznych.
+W tym celu standard POSIX wprowadza pojęcie funkcji bezpieczej, tj. takiej funkcji, która 
+może w sposob bezpieczny być wywołana w czasie obsługi syganłu.
+Wywołanie funkcji innych niż bezpieczne może, potencjalnie, skutkować niezdefiniowanym zachowaniem procesu.
+Listę funkcji, których bezpieczna implementacja jest wymagana przez standard POSIX możemy znaleźć 
+np. w podręczniku systemowym w rozdziale <a href="http://man7.org/linux/man-pages/man7/signal.7.html">man 7 signal</a>
+w części <i>Async-signal-safe functions</i>.
+</p>
+
+<h2>Przykład: standard vs rt signals i zmiana obsługi sygnału</h2>
+
+<p>W tym przykładzie zaprezentujemy różnice pomiędzy standardowymi sygnałami i sygnałami czasu rzeczywistego.</p>
+
+<div class="myCode"><code>
+// rt_sig.c
+
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;signal.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;sys/wait.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;string.h&gt;
+
+#include "err.h"
+
+/*Stałe opisujące długość wywołań sleep()*/
+#define EXTRA_NAP     5
+#define SIGTOBLOCK    (SIGRTMIN + 1)
+#define SIGTOBLOCK2   (SIGRTMIN + 2)
+//extern int errno;
+
+void catch (int sig) { printf("Dostałem sygnał &gt;&gt;%s&lt;&lt;\n", strsignal(sig)); }
+
+
+/**********************************************************************/
+/**********************************************************************/
+
+
+int main(){
+  
+  struct sigaction action;
+  sigset_t block_mask,block_mask2;
+
+  sigemptyset (&amp;block_mask);
+  sigaddset(&amp;block_mask, SIGTOBLOCK);               /*Blokujemy nieporządane sygnały*/
+  sigaddset(&amp;block_mask, SIGTOBLOCK2);
+  sigaddset(&amp;block_mask, SIGQUIT);
+  
+  sigemptyset (&amp;block_mask2);
+  
+  action.sa_handler = catch;
+  action.sa_mask = block_mask;
+  action.sa_flags = 0;
+  
+
+  if (sigaction (SIGTOBLOCK, &amp;action, 0) == -1)            /*Nowa obługa SIGRTMIN+1*/
+    syserr("sigaction");
+  if (sigaction (SIGTOBLOCK2, &amp;action, 0) == -1)           /*Nowa obługa SIGRTMIN+1*/
+    syserr("sigaction");
+  if (sigaction (SIGQUIT, &amp;action, 0) == -1)              /*Nowa obługa SIGQUIT*/
+    syserr("sigaction");  
+  
+  
+  if (sigprocmask(SIG_BLOCK, &amp;block_mask, 0) == -1)
+    syserr("sigprocmask block");
+    
+  
+  printf("Mój pid to %d, blokuję sygnały (%d:%s), (%d:%s)", getpid(), SIGTOBLOCK,\
+          strsignal(SIGTOBLOCK) , SIGQUIT, strsignal(SIGQUIT));
+  printf(" i (%d:%s)\n",SIGTOBLOCK, strsignal(SIGTOBLOCK));
+  
+  printf("Wysyłam do siebie po dwa powyższe sygnały.\n");
+  
+  if(kill(getpid(), SIGTOBLOCK) == -1)
+    syserr("kill");
+  if(kill(getpid(), SIGTOBLOCK2) == -1)
+    syserr("kill");
+  if(kill(getpid(), SIGQUIT) == -1)
+    syserr("kill");
+  if(kill(getpid(), SIGQUIT) == -1)
+    syserr("kill");
+  if(kill(getpid(), SIGTOBLOCK) == -1)
+    syserr("kill");
+  
+  
+  printf("Usypiam na %d sekund\n", EXTRA_NAP);
+  sleep(EXTRA_NAP);
+  
+  printf("Odblokowuję sygnały\n");
+/*najpierw obsłuż SIGTOBLOCK2
+  sigaddset(&amp;block_mask2, SIGTOBLOCK);
+  if (sigprocmask(SIG_UNBLOCK, &amp;block_mask2, 0) == -1)
+    syserr("sigprocmask unblock");
+*/  
+  if (sigprocmask(SIG_UNBLOCK, &amp;block_mask, 0) == -1)
+    syserr("sigprocmask unblock");
+  
+  
+  return 0;
+}
+</code></div>
+
+<h2>Przykład: zastosowanie SA_SIGINFO</h2>
+
+<p>Możemy wyodrębnić identyfikator procesu, który wysłał sygnał.</p>
+
+<div class="myCode"><code>
+//more_info.c
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;signal.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;sys/wait.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;string.h&gt;
+
+#include "err.h"
+
+/*Liczba dzieci*/
+#define N   5
+#define NAP 5
+//extern int errno;
+
+
+void catch (int sig, siginfo_t *info, void *more) { 
+  printf("Rodzic: Dostałem sygnał &gt;&gt;%s&lt;&lt; od %d\n", strsignal(sig), info-&gt;si_pid);
+}
+
+int main ()
+{
+  pid_t pid_child, parent_pid;
+  int i;
+
+  parent_pid = getpid();
+
+  struct sigaction action;
+  sigset_t block_mask;
+
+  sigemptyset (&amp;block_mask);
+  action.sa_sigaction = catch;
+  action.sa_mask = block_mask;
+  //action.sa_flags = SA_SIGINFO | SA_NODEFER; /*co się stanie po dodaniu flagi SA_NODEFER?*/
+  action.sa_flags = SA_SIGINFO;
+  
+  if (sigaction (SIGRTMIN+1, &amp;action, 0) == -1)     /*Nowa obługa*/
+    syserr("sigaction");
+
+
+  for(i=0; i &lt; N; ++i)
+    switch (pid_child = fork()){
+      
+      case -1:
+        syserr("Error in fork\n");
+      case 0:
+        printf("Dziecko %d: Wysyłam sygnał\n", getpid());
+        if(kill(parent_pid, SIGRTMIN + 1) == -1)
+          syserr("kill");
+        printf("Dziecko %d: Kończę\n\n", getpid());
+        return 0;
+      default:
+        break;
+    }
+  
+  
+  sigaddset(&amp;block_mask, SIGRTMIN+1);
+  if (sigprocmask(SIG_BLOCK, &amp;block_mask, 0) == -1)
+    syserr("sigprocmask block");
+  
+  sleep(NAP);
+  
+  if (sigprocmask(SIG_UNBLOCK, &amp;block_mask, 0) == -1)
+    syserr("sigprocmask unblock");
+  
+  for(i=0; i&lt;N; ++i){
+    wait(0);
+  }
+  printf("Rodzic: Kończę\n");
+  
+  return 0;  
+}
+</code></div>
+
+<h1 id="h1_przyklad">Przykład</h1>
+
+<p>W tym dość rozbudowanym przykładzie zaprezentujemy prostą interakcję 
+pomiędzy rodzicem a dzieckiem z wykorzystaniem sygnałów.</p>
+<p>
+Rodzic tworzy dziecko, zmienia obsługę dwu sygnałów i daje czas 
+dziecku na przygotowanie.
+Następnie, wysyła dziecku sygnał i oczekuje na sygnał zwrotny.
+Po otrzymaniu sygnału proces wysyła dwa sygnały do dziecka, czeka na jego odbiór
+i ponownie próbuje przesłać sygnał.
+</p>
+
+<p>Dziecko, przygotowuje się do obsługi sygnałów,
+czeka na sygnał od rodzica a następnie blokuje część sygnałów, wysyła sygnał zwrotny i usypia.
+Po przebudzeniu, dziecko informuje czy podczas snu odebrał sygnał i zwalnia blokadę.</p>
+
+<p>Całość uruchamiamy</p>
+<div class="myCode"><code>
+//exchange.c
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;signal.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;sys/wait.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;string.h&gt;
+
+#include "err.h"
+
+/*Stałe opisujące długość wywołań sleep()*/
+#define PARENT_SLEEP  2
+#define CHILD_SLEEP   4
+#define EXTRA_NAP     4
+
+void catch_parent (int sig) { printf("Rodzic: Dostałem sygnał &gt;&gt;%s&lt;&lt;\n", strsignal(sig)); }
+void catch_child (int sig) { printf("Dziecko: Dostałem sygnał &gt;&gt;%s&lt;&lt;\n", strsignal(sig)); }
+
+void parent(pid_t child_pid);
+void child(pid_t parent_pid);
+
+int main ()
+{
+  pid_t pid_child, parent_pid;
+
+  parent_pid = getpid();
+
+  switch (pid_child = fork()){
+    case -1:
+      syserr("Error in fork\n");
+    case 0:
+      child(parent_pid);
+      break;
+    default:
+      parent(pid_child);
+  }
+  
+    printf("%s: Kończę\n", (getpid() == parent_pid)? "Rodzic":"Dziecko");
+  
+  return 0;  
+}
+</code></div>
+<p>Kod rodzica</p>
+<div class="myCode"><code>
+void parent(pid_t child_pid){
+  
+  struct sigaction action;
+  sigset_t block_mask;
+
+  sigemptyset (&amp;block_mask);
+  action.sa_handler = catch_parent;
+  action.sa_mask = block_mask;
+  action.sa_flags = 0;
+  
+  if (sigaction (SIGUSR1, &amp;action, 0) == -1)        /*Nowa obługa SIGUSR1*/
+    syserr("sigaction");
+  if (sigaction (SIGINT, &amp;action, 0) == -1)              /*Nowa obługa SIGINT*/
+    syserr("sigaction");
+  
+  sleep(PARENT_SLEEP);                                         /*czas na przygotowanie dziecka*/
+  
+  printf("Rodzic: wysyłam sygnał &gt;&gt;%s&lt;&lt;\n", strsignal(SIGINT));
+  
+  if(kill(child_pid, SIGINT) == -1)
+    syserr("kill");
+  
+  printf("Rodzic: wysłałem sygnał\n");
+  
+  if(pause() == -1){                                /*Czekam na sygnał*/
+    if(errno != EINTR)
+      syserr("Rodzic: pause 1");
+    else
+      printf("Rodzic: obudzono mnie 1\n");
+  }
+  
+  printf("Rodzic: wysyłam sygnał &gt;&gt;%s&lt;&lt;\n", strsignal(SIGINT));
+  if(kill(child_pid, SIGINT) == -1)                 /*Dziecko powinno blokować ten sygnał*/
+    syserr("Rodzic: kill");
+  printf("Rodzic: wysłałem sygnał\n");
+  
+  
+  //sleep(EXTRA_NAP);                                        /*Co się stanie jak odkomentuje?*/
+  
+  printf("Rodzic: wysyłam ponownie sygnał &gt;&gt;%s&lt;&lt;\n", strsignal(SIGINT));
+  if(kill(child_pid, SIGINT) == -1)                 /*Dziecka może nie być*/
+    syserr("Rodzic: kill fail");
+  else  
+    printf("Rodzic: co się stanie z tym sygnałem?\n");
+  
+  
+  wait(0);
+  
+  printf("Rodzic: wysyłam sygnał &gt;&gt;%s&lt;&lt;\n", strsignal(SIGINT));
+  if(kill(child_pid, SIGINT) == -1){                /*Dziecka nie ma, wysyłam sygnał*/
+    printf("Rodzic: wszystko ok, brak dziecka: &gt;&gt;%s&lt;&lt;\n", strerror(errno));
+  }else  
+    syserr("Rodzic: kill fail\n");
+  printf("Rodzic: wysłałem? sygnał\n");
+}
+</code></div>
+<p>Kod dziecka</p>
+<div class="myCode"><code>
+void child(pid_t parent_pid){
+  
+  struct sigaction action;
+  sigset_t block_mask, pending_mask;
+
+  sigemptyset (&amp;block_mask);
+  action.sa_handler = catch_child;
+  action.sa_mask = block_mask;
+  action.sa_flags = 0;
+  
+  if (sigaction (SIGINT, &amp;action, 0) == -1)              /*Nowa obługa SIGINT*/
+    syserr("sigaction");
+    
+  if(pause() == -1){                                     /*Czekam na sygnał*/
+    if(errno != EINTR)
+      syserr("pause 1");
+    else
+      printf("Dziecko: obudzono mnie 1\n");
+  }
+  
+  sigaddset(&amp;block_mask, SIGINT);                        /*Mają nie przeszkadzać*/
+  sigaddset(&amp;block_mask, SIGUSR1);
+  if (sigprocmask(SIG_BLOCK, &amp;block_mask, 0) == -1)
+    syserr("sigprocmask block");
+  
+  
+  printf("Dziecko: wysyłam sygnał &gt;&gt;%s&lt;&lt;\n", strsignal(SIGUSR1));
+  if(kill(parent_pid, SIGUSR1) == -1)
+    syserr("kill");
+  printf("Dziecko: wysłałem sygnał\n");
+  printf("Dziecko: wysyłam sygnał &gt;&gt;%s&lt;&lt;\n", strsignal(SIGINT));
+  if(kill(parent_pid, SIGINT) == -1)
+    syserr("kill");
+  printf("Dziecko: wysłałem sygnał\n");
+  
+  sleep(CHILD_SLEEP);                                               /*Brak blokowania*/
+  
+  if (sigpending(&amp;pending_mask) == -1)
+    syserr("sigpendind");
+  if (sigismember(&amp;pending_mask, SIGINT))
+    printf("Dziecko: Sygnał czeka na obsługę\n");
+  else
+    printf("Dziecko: Rodzic nie wysłał mi sygnału\n");
+  if (sigprocmask(SIG_UNBLOCK, &amp;block_mask, 0) == -1)
+    syserr("sigprocmask unblock");
+  
+  //sleep(EXTRA_NAP2);
+}
+</code></div>
+
+
+<h1 id="h1_zadanie">Zadanie</h1>
+
+<p>Na jednym z zajęć dotyczących <code>C++</code> implementowaliśmy 
+<a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/08-cpp-synchronizacja/cpp-lab2.html#sec-5">barierę ochronną</a>.
+Teraz waszym zadaniem jest stworzenie programu <code>bariera</code>, który będzie symulował barierę ochronną przy pomocy sygnałów.
+By zaprezentować działanie bariery program powinien zachowywać się&nbsp;w następujący sposób.
+</p>
+<p>
+Program <code>bariera</code> powinien stworzyć&nbsp;<code>N</code> dzieci i oczekiwać na ich prośby 
+na przejście. Po uzyskaniu <code>K</code> próśb, proces powinien pozwolić kontynuować 
+działanie wszystkim procesom, które poprosiły o przejście, i niezwłocznie akceptować każdą następną prośbę.
+Na podsumowanie, program powinien wypisać listę wszystkich otrzymanych sygnałów.
+</p>
+<p>
+Zachowanie dzieci powinno być następujące.
+Każde dziecko najpierw symuluje pracę (uśnie na <code>LOSUJ(1,10)</code> sekund).
+Następnie ma poprosić o przejście, a po uzyskaniu pozwolenia wylosować sygnał
+z przedziału <code>[SIGRTMIN+1, SIGRTMAX-1]</code>, wypisać wylosowany sygnał na
+standardowe wyjście, wysłać&nbsp;go do rodzica i zakończyć działanie.
+</p>
+<p>
+<code>N i K</code> powinny być stałymi symbolicznymi (#define N, #define K).
+</p>
+
+<p>
+Wskazówka:
+</p>
+<ul><li>
+Do oczekiwania na sygnał można wykorzystać funkcję <code>sigwaitinfo</code>
+lub przerywanie wywołań wstrzymujących funkcji systemowych.
+</li></ul>
+
+
+
+</body></html>

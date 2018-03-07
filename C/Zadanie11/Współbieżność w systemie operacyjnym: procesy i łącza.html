@@ -1,0 +1,888 @@
+<!--?xml version="1.0" encoding="utf-8"?-->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="pl" lang="pl"><link type="text/css" id="dark-mode" rel="stylesheet" href=""><style type="text/css" id="dark-mode-custom-style"></style><head>
+<title>Współbieżność w systemie operacyjnym: procesy i łącza</title>
+<!-- 2017-12-11 pon 09:59 -->
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="generator" content="Org-mode">
+<meta name="author" content="Agata Janowska">
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { color: green; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: visible;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  pre.src-sh:before    { content: 'sh'; }
+  pre.src-bash:before  { content: 'sh'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-R:before     { content: 'R'; }
+  pre.src-perl:before  { content: 'Perl'; }
+  pre.src-java:before  { content: 'Java'; }
+  pre.src-sql:before   { content: 'SQL'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.right  { text-align: center;  }
+  th.left   { text-align: center;   }
+  th.center { text-align: center; }
+  td.right  { text-align: right;  }
+  td.left   { text-align: left;   }
+  td.center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara:nth-child(2) { display: inline; }
+  .footpara { display: block; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  /*]]>*/-->
+</style>
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2013 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">Współbieżność w systemie operacyjnym: procesy i łącza</h1>
+<div id="table-of-contents">
+<h2>Spis treści</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1. Wstęp — funkcje systemowe</a></li>
+<li><a href="#sec-2">2. Procesy</a>
+<ul>
+<li><a href="#sec-2-1">2.1. Identyfikator procesu</a></li>
+<li><a href="#sec-2-2">2.2. Tworzenie nowego procesu</a></li>
+<li><a href="#sec-2-3">2.3. Oczekiwanie na zakończenie procesu potomnego</a></li>
+<li><a href="#sec-2-4">2.4. Uruchamianie nowych programów</a></li>
+<li><a href="#sec-2-5">2.5. Kończenie procesu</a></li>
+</ul>
+</li>
+<li><a href="#sec-3">3. Łącza</a>
+<ul>
+<li><a href="#sec-3-1">3.1. Deskryptory</a></li>
+<li><a href="#sec-3-2">3.2. Tworzenie łącza nienazwanego</a></li>
+<li><a href="#sec-3-3">3.3. Zamykanie łącza</a></li>
+<li><a href="#sec-3-4">3.4. Pisanie do łącza i czytanie z łącza</a></li>
+<li><a href="#sec-3-5">3.5. Podmiana standardowego wejścia/wyjścia</a></li>
+</ul>
+</li>
+<li><a href="#sec-4">4. Zadanie</a></li>
+</ul>
+</div>
+</div>
+
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> Wstęp — funkcje systemowe</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+Każda z funkcji, którą będziemy omawiać wymaga pewnych działań systemu
+operacyjnego, a dokładniej — wykonania <b>funkcji systemowych</b>. 
+Pisząc program nie używamy bezpośrednio funkcji systemowych,
+ale odpowiadających im funkcji bibliotecznych, które wywołują 
+właściwe funkcje i wykonują pewne dodatkowe czynności.
+</p>
+
+<p>
+Funkcja systemowa nie jest zwykłym wywołaniem funkcji. Jest wykonanie
+oznacza przejście w tryb uprzywilejowany i zlecenie systemowi 
+operacyjnemu wykonania pewnych czynności na rzecz procesu. 
+Ze względu na przekraczanie granic ochrony jest to droższe niż 
+zwykłe wywołanie funkcji. 
+</p>
+
+<p>
+Każda funkcja systemowa przekazuje swój kod zakończenia. Jest to 0, jeżeli
+funkcja zakończyła się pomyślnie lub liczba ujemna oznaczająca kod błędu
+w przeciwnym przypadku. Funkcja opakowująca z biblioteki C, która wywołuje 
+funkcję systemową, sprawdza czy nastąpił błąd i jeżeli tak, to przypisuje 
+wartość błędu na globalną zmienną procesu o nazwie <code>errno</code> 
+i przekazuje w wyniku -1.
+Dzięki kodowi błędu uzyskujemy więcej informacji o powodach wystąpienia 
+danego błędu. Przykład wykorzystania zmiennej <code>errno</code> można znaleźć w funkcji 
+<code>syserr()</code> w pliku <code>err.c</code>, która korzysta z globalnej tablicy <code>sys_errlist</code> 
+zawierającej opisy wszystkich kodów błędów.
+</p>
+
+<p>
+<code>err.c</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-c">extern int sys_nerr;
+
+void syserr(const char *fmt, ...)  
+{
+  va_list fmt_args;
+
+  fprintf(stderr, "ERROR: ");
+
+  va_start(fmt_args, fmt);
+  vfprintf(stderr, fmt, fmt_args);
+  va_end (fmt_args);
+  fprintf(stderr," (%d; %s)\n", errno, strerror(errno));
+  exit(1);
+}
+</pre>
+</div>
+
+<p>
+W dalszym ciągu zajęć będziemy używać pewnego skrótu myślowego, a mianowicie
+będziemy nazywać funkcją systemową odpowiednią funkcję biblioteczną.
+</p>
+
+<p>
+Zalecamy używanie funkcji <code>syserr()</code> lub <code>perror()</code> do obsługi błędów funkcji systemowych.
+Można również napisać w tym celu własną funkcję, która będzie wykorzystywać informacje zawarte 
+w zmiennej <code>errno</code>.
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> Procesy</h2>
+<div class="outline-text-2" id="text-2">
+</div><div id="outline-container-sec-2-1" class="outline-3">
+<h3 id="sec-2-1"><span class="section-number-3">2.1</span> Identyfikator procesu</h3>
+<div class="outline-text-3" id="text-2-1">
+<p>
+Każdy proces w systemie ma jednoznaczny <b>identyfikator</b> nazywany potocznie
+<b>pidem</b> (od angielskiego: process id). Identyfikatory aktualnie wykonujących 
+się procesów można poznać wykonując polecenie <code>ps</code>.
+</p>
+
+<p>
+Wykonaj polecenie <code>ps</code>. Zobaczysz wszystkie procesy uruchomione przez Ciebie
+w tej sesji. Znajdzie się wśród nich proces <code>ps</code> i <code>bash</code>, czyli
+interpreter poleceń, który analizuje i wykonuje Twoje polecenia. 
+Pierwsza kolumna to pid procesu, a ostatnia to polecenie, które ten 
+proces wykonuje. 
+</p>
+
+<p>
+Z poziomu języka programowania proces może poznać swój pid wywołując 
+funkcję systemową <code>getpid()</code>. Przekazywane w wyniku wartości typu 
+<code>pid_t</code> reprezentują pidy procesów. Najczęściej jest
+to długa liczba całkowita, ale w zależności od wariantu systemu
+definicja ta może być inna. 
+</p>
+
+<p>
+<code>hello-world.c</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-c">int main ()
+{
+  pid_t pid = getpid();
+
+  printf("Hello from %d\n", pid);
+}
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2-2" class="outline-3">
+<h3 id="sec-2-2"><span class="section-number-3">2.2</span> Tworzenie nowego procesu</h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+W Linuksie, tak jak we wszystkich systemach uniksowych, istnieje
+hierarchia procesów. Każdy proces poza pierwszym procesem w systemie
+(procesem init o pidzie równym 1) jest tworzony przez inny proces. 
+Nowy proces nazywamy <b>procesem potomnym</b>, a proces który go stworzył 
+<b>procesem macierzystym</b>. 
+</p>
+
+<p>
+Do tworzenia procesów służy funkcja systemowa <code>fork()</code>.
+Powrót z wywołania tej funkcji następuje dwa razy: w procesie macierzystym
+i w procesie potomnym. 
+</p>
+
+<p>
+Proces potomny wykonuje taki sam kod jak proces macierzysty — zaczyna 
+od wykonania następnej instrukcji po <code>fork()</code>. Jednak przestrzenie adresowe 
+tych procesów są rozłączne. Każdy ma swoją kopię zmiennych. Wartości 
+zmiennych w procesie potomnym są początkowo takie same jak w procesie 
+macierzystym w momencie utworzenia nowego procesu. Procesy mają te same 
+uprawnienia, te same otwarte pliki itd. 
+</p>
+
+<p>
+<code>fork.c</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-c">int main ()
+{
+  printf("Hello from %d\n", getpid());
+
+  if (fork() == -1) syserr("Error in fork\n");  /* powstaje nowy proces */
+
+  printf("Goodbye from %d\n", getpid());
+
+  return 0;  
+}
+</pre>
+</div>
+
+<p>
+Dla potomka funkcja <code>fork()</code> przekazuje w wyniku 0, a dla 
+procesu macierzystego — pid nowo utworzonego potomka.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2-3" class="outline-3">
+<h3 id="sec-2-3"><span class="section-number-3">2.3</span> Oczekiwanie na zakończenie procesu potomnego</h3>
+<div class="outline-text-3" id="text-2-3">
+<p>
+Proces macierzysty może zaczekać na zakończenie procesu potomnego za pomocą
+funkcji <code>wait(int status)</code>. 
+</p>
+<p>
+Funkcja przekazuje w wyniku pid zakończonego procesu. Parametr <code>status</code> jest 
+wskaźnikiem do zmiennej zawierającej kod zakończenia procesu.
+Funkcja jest blokująca, co oznacza, ze proces macierzysty, który ja wywoła
+zostanie wstrzymany, aż do zakończenia jednego ze swoich procesów potomnych. 
+Jeżeli proces nie miał potomków, to funkcja zwróci błąd. Jeżeli potomek 
+zakończy się zanim rodzic wywoła <code>wait()</code>, to <code>wait()</code> nie zablokuje procesu i
+wykona się poprawnie dając w wyniku pid zakończonego potomka. 
+</p>
+
+<p>
+System operacyjny przechowuje kody zakończenia procesów potomnych, aż do chwili
+odebrania ich przez procesy macierzyste. Proces potomny, którego
+kod nie został odebrany przez rodzica, staje się <b>zombie</b>, czyli procesem który 
+się zakończył, ale informacje o nim są wciąż przechowywane przez system. 
+Pobieranie kodów zakończenia, czyli wywoływanie <code>wait()</code> jest ważne, 
+ponieważ pozwala uniknąć niepotrzebnego zajmowania miejsca w strukturach systemu 
+przechowujących dane o procesach.
+</p>
+
+<p>
+<code>wait.c</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-c">int main ()
+{
+  pid_t pid;
+
+  switch (pid = fork()) {                     /* powstaje nowy proces */
+
+    case -1:                                  /* błąd funkcji fork() */
+      syserr("Error in fork\n");              
+
+    case 0:                                   /* proces potomny */
+
+      printf("I am a child and my pid is %d\n", getpid());
+      printf("I am a child and fork() return value is %d\n", pid);
+
+      return 0;                               /* proces potomny kończy */
+
+    default:                                  /* proces macierzysty */
+
+      printf("I am a parent and my pid is %d\n", getpid());
+      printf("I am a parent and fork() return value is %d\n", pid);
+
+      if (wait(0) == -1) syserr("Error in wait\n");
+					      /* czeka na zakończenie procesu potomnego */
+
+      return 0;
+  }
+}
+</pre>
+</div>
+
+<p>
+Aby zobaczyć proces zombie (oznaczony jako <code>&lt;defunct&gt;</code>), zastąp wywołanie 
+<code>wait()</code> w procesie macierzystym przez <code>sleep(10)</code> 
+a następnie wywołaj <code>./wait &amp; ps</code>. 
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2-4" class="outline-3">
+<h3 id="sec-2-4"><span class="section-number-3">2.4</span> Uruchamianie nowych programów</h3>
+<div class="outline-text-3" id="text-2-4">
+<p>
+Procesowi można zlecić wykonanie innego programu. Aktualnie 
+wykonywany program zostanie wtedy zastąpiony innym. 
+Służą do tego funkcje <code>exec()</code>. 
+Jest 6 wersji tej funkcji różniących się sposobem podania argumentów.
+</p>
+
+<p>
+Napisz <code>man 3 exec</code>, aby zobaczyć wszystkie możliwości. Krótkie wyjaśnienie:
+</p>
+
+<ul class="org-ul">
+<li>l — argumenty programu są w postaci listy napisów zakończonej <code>NULL</code>
+</li>
+<li>v — argumenty programu są w postaci tablicy napisów (tak jak <code>argv</code> dla funkcji 
+<code>main</code>)
+</li>
+<li>p — ścieżka przeszukiwania plików wykonywalnych jest brana ze zmiennej środowiskowej <code>PATH</code>
+</li>
+<li>e — środowisko jest przekazywane jako ostatni parametr (rzadko używane)
+</li>
+</ul>
+
+<p>
+Parametry:
+</p>
+
+<ul class="org-ul">
+<li><code>path</code> — pełna ścieżka do wykonywalnego programu
+</li>
+<li><code>file</code> — nazwa pliku z programem (tylko z w wersji z p)
+</li>
+</ul>
+
+<p>
+Uwagi: 
+</p>
+
+<ul class="org-ul">
+<li>pierwszy element na liście i w tablicy jest zawsze nazwą pliku 
+zawierającego program, a dopiero następne elementy to właściwe argumenty
+ programu
+</li>
+
+<li>jeżeli wykonanie funkcji <code>exec()</code> się powiedzie, to nigdy nie nastąpi powrót z jej wywołania 
+</li>
+
+<li>funkcje <code>exec()</code> najczęściej wywołuje się zaraz po wywołaniu <code>fork()</code> w procesie potomnym
+</li>
+</ul>
+
+<p>
+<code>exec.c</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-c">int main ()
+{
+  pid_t pid;
+
+  switch (pid = fork()) {                     /* tworzenie procesu potomnego */
+    case -1: 
+      syserr("Error in fork\n");
+
+    case 0:                                   /* proces potomny */
+
+      printf("I am a child and my pid is %d\n", getpid());      
+
+      execlp("ps", "ps", NULL);               /* wykonuje program ps */
+      syserr("Error in execlp\n");
+
+    default:                                  /* proces macierzysty */
+
+      printf("I am a parent and my pid is %d\n", getpid());
+
+      if (wait(0) == -1) syserr("Error in wait\n");
+					      /* czeka na zakończenie potomka */
+      return 0;
+  } 
+}
+</pre>
+</div>
+
+<p>
+Spróbuj uruchomić w ten sposób inne programy lub dodaj opcje do polecenia <code>ps</code>.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2-5" class="outline-3">
+<h3 id="sec-2-5"><span class="section-number-3">2.5</span> Kończenie procesu</h3>
+<div class="outline-text-3" id="text-2-5">
+<p>
+Proces kończy działanie przez wywołanie funkcji <code>exit(int kod)</code>.        
+W przypadku poprawnego zakończenia kod zakończenia powinien być równy 0,
+a różny od 0, jeżeli nastąpił błąd.
+</p>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> Łącza</h2>
+<div class="outline-text-2" id="text-3">
+</div><div id="outline-container-sec-3-1" class="outline-3">
+<h3 id="sec-3-1"><span class="section-number-3">3.1</span> Deskryptory</h3>
+<div class="outline-text-3" id="text-3-1">
+<p>
+Każdy proces utrzymuje tak zwaną <b>tablicę deskryptorów</b>. Tablica 
+zawiera informacje o otwartych przez proces plikach, łączach lub gniazdach.
+Indeks w tej tablicy nazywamy <b>deskryptorem</b>. 
+</p>
+
+<p>
+Przy starcie każdego procesu rezerwowane są trzy specjalne deskryptory
+o numerach 0, 1 i 2. Są to deskryptory <b>standardowego wejścia</b>, 
+<b>standardowego  wyjścia</b> i <b>standardowego wyjścia błędów</b> procesu.
+Wejście, wyjście i wyjście błędów można przekierowywać z poziomu
+interpretera poleceń za pomocą operatorów <code>&lt;</code>, <code>&gt;</code>, <code>&gt;&gt;</code>, 
+<code>2&gt;</code> oraz <code>&amp;&gt;</code>. 
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-3-2" class="outline-3">
+<h3 id="sec-3-2"><span class="section-number-3">3.2</span> Tworzenie łącza nienazwanego</h3>
+<div class="outline-text-3" id="text-3-2">
+<p>
+Łącza nienazwane to rodzaj buforów istniejących tylko wewnątrz jądra
+systemu operacyjnego. Nie można ich znaleźć na dysku. Służą
+one do komunikacji między procesami spokrewnionymi. Dwa procesy 
+są spokrewnione, jeśli mają wspólnego przodka (ojca, dziadka, itd.) lub 
+jeden z nich jest przodkiem drugiego. 
+</p>
+
+<p>
+Łącza są jednokierunkowe, zatem aby uzyskać komunikację w dwie strony 
+należy utworzyć parę łączy.
+</p>
+
+<p>
+Do tworzenia łączy nienazwanych służy funkcja systemowa <code>pipe(int fds[2])</code>.
+Funkcja ta tworzy nowe łącze nienazwane oraz umieszcza w tablicy podanej
+jako parametr, numery dwóch deskryptorów. Pierwszy deskryptor służy do
+odczytu, a drugi do zapisu do utworzonego łącza.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-3-3" class="outline-3">
+<h3 id="sec-3-3"><span class="section-number-3">3.3</span> Zamykanie łącza</h3>
+<div class="outline-text-3" id="text-3-3">
+<p>
+Aby zamknąć łącze używamy funkcji systemowej <code>close(int fd)</code>.
+</p>
+
+<p>
+Nie powinno się zamykać deskryptorów 0, 1, 2, chyba 
+że jest ku temu istotny powód. Natomiast zawsze należy zamknąć
+deskryptory, które sami otworzyliśmy. Robimy to wtedy, gdy deskryptor nie 
+będzie już używany. W ten sposób zapobiegamy zbędnemu kopiowaniu 
+deskryptorów (przy <code>fork()</code>) i nadmiernemu wzrostowi tablic
+deskryptorów.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-3-4" class="outline-3">
+<h3 id="sec-3-4"><span class="section-number-3">3.4</span> Pisanie do łącza i czytanie z łącza</h3>
+<div class="outline-text-3" id="text-3-4">
+<p>
+Funkcja <code>write(int fd, const void *buf, size_t count)</code> zapisuje 
+do otwartego łącza o deskryptorze <code>fd</code> nie więcej niż <code>count</code> bajtów 
+znajdujących się w tablicy <code>buf</code>.
+Łącza mają ograniczoną pojemność (nie mniejszą niż 4Kb).
+Proces, który próbuje zapisać do łącza, w którym nie ma miejsca 
+na całą zapisywaną porcję, jest wstrzymany do
+czasu, aż z łącza zostanie odczytana taka ilość danych by znalazło
+się miejsce na zapisywane dane. Oznacza to, że <code>write()</code>
+zapisze wszystkie dane albo nic. Jedyny wyjątek od tej reguły występuje
+wtedy, kiedy próbujemy na raz zapisać do łącza więcej niż wynosi jego pojemność. 
+Wtedy proces zapisuje do łącza tyle ile może i jest wstrzymywany do 
+momentu aż znowu będzie mógł coś do łącza zapisać.
+</p>
+
+<p>
+Wynikiem funkcji <code>write()</code> jest liczba zapisanych bajtów lub -1, 
+jeśli nastąpił błąd. 
+</p>
+
+<p>
+Zapis do łącza jest możliwy tylko wtedy, gdy jest ono otwarte 
+(przez ten sam lub inny proces) do czytania.
+Jeśli proces spróbuje pisać do łącza, które nie jest przez żaden
+proces otwarte do czytania, zostanie przerwany sygnałem <code>SIGPIPE</code> 
+(więcej o sygnałach na kolejnych zajęciach). Ten błąd najczęściej 
+objawia się komunikatem <code>Broken pipe</code> z poziomu interpretera poleceń.
+</p>
+
+<p>
+Do odczytu z łącza używamy funkcji systemowej
+<code>read(int fd, void *buf, size_t count)</code>.
+Funkcja odczytuje z łącza o deskryptorze <code>fd</code> nie więcej niż <code>count</code> bajtów 
+do bufora znajdującego się pod adresem <code>buf</code>. Jeśli w łączu znajduje się 
+mniej niż <code>count</code> bajtów ale nie jest puste, to funkcja <code>read()</code> odczytuje 
+tyle danych, ile jest w łączu i kończy się pomyślnie. 
+Odczyt z pustego łącza wstrzymuje proces odczytujący do czasu pojawienia
+się w łączu jakichkolwiek danych.
+Istnieje jednak sytuacja, w której 0 może być wynikiem funkcji <code>read()</code>.  
+Dzieje się tak przy próbie odczytu z łącza, które nie jest przez żaden 
+proces otwarte do zapisu. 
+</p>
+
+<p>
+Funkcje <code>write()</code> i <code>read()</code> są niepodzielne. 
+Oznacza to, że operacje odczytu i zapisu wykonywane jednocześnie na 
+tym samym łączu nie będą się przeplatać — jedna z nich rozpocznie 
+się po zakończeniu drugiej. Kolejność odczytu jest zgodna z kolejnością 
+zapisu — łącza są kolejkami prostymi.
+</p>
+
+<p>
+Przykładowy scenariusz użycia łącza jest następujący:
+</p>
+
+<ul class="org-ul">
+<li>proces tworzy łącze (<code>pipe()</code>) 
+</li>
+<li>następnie tworzy proces potomny (<code>fork()</code>)
+</li>
+<li>proces macierzysty zamyka deskryptor do zapisu
+</li>
+<li>proces potomny zamyka deskryptor do odczytu (odziedziczony po rodzicu)
+</li>
+<li>proces macierzysty może wykonać funkcję <code>read()</code> — będzie ona wstrzymywać proces aż do chwili, gdy proces potomny zapisze coś w łączu — wtedy rodzic odczyta z łącza wiadomość 
+</li>
+<li>gdy proces potomny zamknie deskryptor do zapisu, <code>read()</code> w procesie macierzystym przekaże wartość 0; w ten sposób proces może wykryć koniec strumienia danych i zakończyć się
+</li>
+</ul>
+
+<p>
+<code>parent-pipe.c</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-c">char message[] = "Hello from your parent!";
+
+int main()
+{
+  int pipe_dsc[2];
+  char pipe_read_dsc_str[10];
+
+  if (pipe(pipe_dsc) == -1) syserr("Error in pipe\n");
+
+  switch (fork()) {
+    case -1:
+      syserr("Error in fork\n");
+
+    case 0: 
+      if (close(pipe_dsc[1]) == -1) syserr("Error in close(pipe_dsc[1])\n");
+
+      sprintf(pipe_read_dsc_str, "%d", pipe_dsc[0]);
+      execl("./child-pipe", "child-pipe", pipe_read_dsc_str, NULL);
+      syserr("Error in execl\n");
+
+    default:
+      if (close(pipe_dsc[0]) == -1) syserr("Error in close(pipe_dsc[0])\n");
+
+      if (write(pipe_dsc[1], message, sizeof(message)) != sizeof(message))
+	syserr("Error in write\n");
+
+      if (wait(0) == -1)
+	syserr("Error in wait\n");
+
+      exit(0);
+  }
+}
+</pre>
+</div>
+
+<p>
+Proces rodzica tworzy proces, który ma wykonać program <code>child_pipe</code>.  Proces 
+macierzysty komunikuje się z nim za pomocą łącza, do którego pisze
+krótki komunikat.
+</p>
+
+<p>
+<code>child-pipe.c</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-c">int main (int argc, char *argv[])
+{
+  int read_dsc, buf_len;
+  char buf[BUF_SIZE];
+
+  if (argc != 2)
+    fatal("Usage: %s &lt;read_fd&gt;\n", argv[0]);
+
+  read_dsc = atoi(argv[1]);
+  printf("Reading data from descriptor %d\n", read_dsc);
+
+  if ((buf_len = read(read_dsc, buf, BUF_SIZE - 1)) == -1)
+    syserr("Error in read\n");;
+
+  buf[buf_len &lt; BUF_SIZE - 1 ? buf_len : BUF_SIZE - 1] = '\0';
+  /* ustawienie znaku końca napisu za wczytanymi danymi */
+
+  if (buf_len == 0)                         
+    fatal("Unexpected end-of-file\n");
+  else      
+    printf("Read %d byte(s): \"%s\"\n", buf_len, buf);
+
+  exit(0);
+}
+</pre>
+</div>
+
+<p>
+Potomek czyta komunikat z deskryptora, którego numer jest 
+przekazywany jako jedyny argument wywołania programu.
+</p>
+
+<p>
+Funkcja systemowa <code>exec()</code> nie wpływa na postać tablicy deskryptorów.
+Proces po wykonaniu <code>exec()</code> zachowuje otwarte łącza choć 
+nie zna już ich numerów, bo zmienne, które przechowywały 
+deskryptory przestały istnieć w chwili wykonania
+funkcji <code>exec()</code>. Stąd konieczność przekazania numeru ddeskryptora 
+przez argumenty wywołania programu. Nie jest to jednak zalecana technika.
+Lepszy sposób jest pokazany w następnym punkcie. 
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-3-5" class="outline-3">
+<h3 id="sec-3-5"><span class="section-number-3">3.5</span> Podmiana standardowego wejścia/wyjścia</h3>
+<div class="outline-text-3" id="text-3-5">
+<p>
+Do tworzenia kopii deskryptora używamy funkcji
+<code>dup(int oldfd)</code> lub <code>dup2(int oldfd, int newfd)</code>.
+</p>
+
+<p>
+W obydwu przypadkach wynikiem funkcji jest numer nowego deskryptora,
+a w wypadku błędu ~-1.
+</p>
+
+<p>
+Ciekawym sposobem wykorzystania duplikacji jest podmiana standardowego
+wejścia i wyjścia procesu. Jest to ważna technika stosowana 
+powszechnie w programach uniksowych. Typowy scenariusz jest następujący:
+</p>
+
+<ul class="org-ul">
+<li>proces tworzy łącze, następnie wykonuje <code>fork()</code> 
+</li>
+<li>proces macierzysty zamyka niepotrzebne mu deskryptory, po czym wykonuje się dalej używając otwartego łącza
+</li>
+<li>proces potomny duplikuje deskryptory łącza na standardowe wejście 
+lub wyjście w zależności od potrzeb, a następnie zamyka niepotrzebne 
+deskryptory
+</li>
+<li>proces potomny wykonuje <code>exec()</code>
+</li>
+</ul>
+
+<p>
+Na skutek zduplikowania standardowe wejście lub wyjście zostaje przekierowane do utworzonego
+łącza. Zatem kod programu wywoływanego w funkcji <code>exec()</code> można napisać 
+w standardowy sposób — odczyt ze standardowego wejścia a zapis na standardowe
+wyjście. Przekierowane dokonane przed wywołaniem funkcji <code>exec()</code> 
+powoduje, że standardowe deskryptory dotyczyć będą już nie terminala
+lecz uprzednio utworzonego łącza.  
+</p>
+
+<p>
+<code>parent_dup.c</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-c">char message[] = "Hello from your parent!\n";
+
+int main (int argc, char *argv[])
+{
+  int pipe_dsc[2];
+
+  if (pipe(pipe_dsc) == -1) syserr("Error in pipe\n");
+
+  switch (fork ()) {
+    case -1: 
+      syserr("Error in fork\n");
+
+    case 0:
+      if (close (0) == -1)            syserr("Error in child, close (0)\n");
+      if (dup (pipe_dsc [0]) != 0)    syserr("Error in child, dup (pipe_dsc [0])\n");
+      if (close (pipe_dsc [0]) == -1) syserr("Error in child, close (pipe_dsc [0])\n");
+      if (close (pipe_dsc [1]) == -1) syserr("Error in child, close (pipe_dsc [1])\n");
+
+      if (argc &gt;= 2) {
+
+	/* argv + 1 is to argv bez pierwszego elementu - nazwy programu parent_dup */
+	execvp(argv[1], argv + 1);
+	syserr("Error in execvp\n");
+      }
+      exit (0);
+
+    default:
+      if (close (pipe_dsc [0]) == -1) syserr("Error in parent, close (pipe_dsc [0])\n");
+
+      if (write (pipe_dsc [1], message, sizeof(message) - 1) != sizeof(message) - 1)
+	syserr("Error in write\n");
+
+      if (close (pipe_dsc [1]) == -1) syserr("Error in parent, close (pipe_dsc [1])\n");
+
+      if (wait (0) == -1) 
+	syserr("Error in wait\n");
+      exit (0);
+  } 
+}
+</pre>
+</div>
+
+<p>
+Wywołanie: <code>parent-dup &lt;polecenie&gt; [&lt;arg1&gt; ... &lt;argn&gt;]</code>.
+Program tworzy nowy proces, który ma wykonać polecenie z zadanymi argumentami. 
+Proces macierzysty zapisuje do utworzonego łącza krótki komunikat. Proces potomny 
+odbiera ten komunikat z łącza dzięki wcześniejszemu przekierowaniu standardowego wejścia.
+</p>
+
+<p>
+Przykłady wywołań:
+</p>
+<ul class="org-ul">
+<li><code>parent-dup cat</code>
+</li>
+<li><code>parent-dup grep from</code>
+</li>
+<li><code>parent-dup grep Goodbye</code>
+</li>
+<li><code>parent-dup wc</code>
+</li>
+</ul>
+
+<p>
+Klasycznym przykładem użycia komunikacji jednostronnej przy użyciu
+łączy z podmiana wejścia i wyjścia jest operator <code>|</code> interpretera poleceń
+(np. <code>cat /etc/passwd | grep Piotr | wc -l</code>).
+</p>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4"><span class="section-number-2">4</span> Zadanie</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+W pliku <code>tree.c</code> znajdziesz przykład drzewa procesów, w którym proces 
+macierzysty tworzy <code>NR_PROC</code> procesów potomnych.  Napisz program <code>line.c</code> tworzący 
+linię składającą się z <code>NR_PROC</code> procesów, w której każdy proces potomny jest przodkiem następnego procesu. 
+Każda para procesów rodzic-potomek komunikuje się za pomocą łączy nienazwanych.
+Pierwszy proces wysyła do swojego potomka życzenia wesołych świąt. Każdy następny proces
+odbiera życzenia od przodka i przesyła je do potomka, a następnie przesyła potomkowi 
+również własne życzenia. Ostatni proces wypisuje wszystkie odebrane życzenia 
+na standardowe wyjście. 
+</p>
+
+<p>
+Każdy proces powinien zaczekać na zakończenie swojego potomka. Do obsługi błędów 
+użyj funkcji <code>syserr()</code>.  
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Autor: Agata Janowska</p>
+<p class="date">Created: 2017-12-11 pon 09:59</p>
+<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.5.1 (<a href="http://orgmode.org/">Org</a> mode 8.2.10)</p>
+<p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+
+
+</body></html>

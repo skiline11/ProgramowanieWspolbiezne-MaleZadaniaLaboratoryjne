@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html><link type="text/css" id="dark-mode" rel="stylesheet" href=""><style type="text/css" id="dark-mode-custom-style"></style><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>lab14-pamięć współdzielona i semafory</title>
+
+<meta name="author" content="Marcin Przybylko">
+<meta lang="pl">
+
+<!-- move style to css file -->
+<style>
+body {
+  max-width: 1000px;
+  background-color: #EEEEEE;
+  color: black;
+}
+p {
+  text-align: justify;
+  margin-left: 15px;
+}
+
+code {
+  font-family: monospace;
+}
+
+div.myCode{
+  background-color: white;
+  border: 1px solid black;
+  white-space : pre;
+  margin-left: 15px;
+  padding: 10px;
+}
+
+span.comment{
+  color:blue;
+}
+</style>
+
+</head>
+
+
+<body>
+
+<h1 id="h1_spis">Spis treści</h1>
+<ul>
+  <li><a href="#h1_pamiec_dzielona_linuks">Pamięć współdzielona</a></li>
+  <ul>
+    <li><a href="#h2_dostep">Uzyskanie dostępu/stworzenie nowego fragmentu pamięci współdzielonej</a></li>
+    <li><a href="#h2_przylaczenie">Przyłączenie fragmentu pamięci</a></li>
+    <li><a href="#h2_koniec">Kończenie pracy z pamięcią współdzieloną</a></li>
+  </ul>
+
+  <li><a href="#h1_semafory">Semafory</a></li>
+  <ul>
+    <li><a href="#h2_nazwane_sem">Pozyskanie semaforów nazwanych</a></li>
+    <li><a href="#h2_nienazwane_sem">Pozyskanie semaforów nienazwanych</a></li>
+    <li><a href="#h2_operacje_sem">Operacje na semaforach</a></li>
+  </ul>
+  <li><a href="#h1_zadanie">Zadanie</a></li>
+  <li>Przykłady
+  <ul>
+    <li><a href="#h2_dostep_przyklad">Przykład: uzyskanie dostępu do fragmentu pamięci dzielonej.</a></li>
+    <li><a href="#h2_korzystanie_przyklad">Przykład: korzystanie z pamięci współdzielonej</a></li>
+    <li><a href="#h2_anonim_pamiec">Przykład: Anonimowa pamięć współdzielona</a></li>
+    <li><a href="#h2_nazwane_sem_przyklad">Przykład: Semafory nazwane</a></li>
+    <li><a href="#h2_nienazwane_sem_przyklad">Przykład: Semafory nienazwane</a></li>
+    
+  </ul>
+  
+  
+  </li>
+</ul>
+<!--
+WSTEP
+-->
+<!--
+<h1 id="h1_wstep">Wstęp</h1>
+
+
+<!-- Pamiec dzielona opis--
+
+<h1 id="h1_wstęp">Pamięć współdzielona</h1>
+
+
+-->
+<!--
+PAMIEC WSPOLDZIELONA
+-->
+<h1 id="h1_pamiec_dzielona_linuks">Pamięć współdzielona w systemie Linux</h1>
+
+<p>
+Większość dystrybucji systemu Linux udostępnia dwie implementacje
+pamięci współdzielonej
+(ang. <i>Shared Memory</i>, <code>SHM</code>) tzw. implementację&nbsp;<code>Systemu V</code>, przestarzałą i dostępną w prawie wszystkich dystrybucjach,
+oraz implementację&nbsp;zgodną&nbsp;z <code>POSIX</code>, nowocześniejszą i dostępną w wielu współczesnych systemach.
+W tym scenariuszu omówimy tę drugą implementację.
+Opis wersji <code>Systemu V</code> można znaleźć np. <a href="http://man7.org/linux/man-pages/man2/shmget.2.html">tu</a>.
+</p>
+
+<p>
+Pamięć&nbsp;współdzielona w systemie Linux jest identyfikowana poprzez <i>nazwę</i>.
+Nazwa jest to napis nie dłuższy niż&nbsp;<code>NAME_MAX</code> znaków, postaci <code>/somename</code> gdzie <code>somename</code>
+jest to napis nie zawierający znaku <code>/</code>.
+</p>
+<p>Podobieństwo nazwy <code>SHM</code> do ścieżki dostępu do pliku nie jest przypadkowe.
+Wiele narzędzi i mechanizmów w systemie Linux korzysta z dostosowanego
+do własnych potrzeb interfejsu związanego z obsługą plików.
+Fragmenty pamięci współdzielonej, jako obiekty nazwane, są&nbsp;przechowywane w wirtualnym systemie plików
+i traktowane przez system operacyjny w podobny sposób.
+</p>
+
+<p>W związku z tym, to do użytkownika często należy zapewnienie unikalności nazwy w tzw. obiektach <i>nazwanych</i>.</p>
+
+<h1 id="h1_wysylanie">Korzystanie z pamięci współdzielonej</h1>
+<!---DOSTĘP -->
+<h2 id="h2_dostep">Uzyskanie dostępu/stworzenie nowego fragmentu pamięci współdzielonej</h2>
+<p>
+By uzyskać dostęp do fragmentu pamięci współdzielonej należy wywołać funkcję&nbsp;<a href="http://man7.org/linux/man-pages/man3/shm_open.3.html">shm_open</a>,
+będącą&nbsp;analogiem funkcji funkcji <code><a href="http://man7.org/linux/man-pages/man2/open.2.html">open</a></code> służącej do
+otrzymania deskryptora pliku.
+</p>
+<div class="myCode"><code>int shm_open(const char *name, int oflag, mode_t mode);</code></div>
+<p>
+gdzie
+</p><ul>
+  <li><code>name</code> to nazwa fragmentu pamięci,</li>
+  <li><code>mode</code> to prawa dostępu do pamięci (wykorzystywane, 
+  jeśli wywołanie <code>shm_open</code> stworzy nowy fragment pamięci);
+  przeczytaj <code><a href="http://man7.org/linux/man-pages/man2/open.2.html">man 2 open</a></code>, część <code>O_CREAT</code> by poznać&nbsp;możliwe wartości,</li>
+  <li>a <code>oflag</code> to bitowa unia jednej z dwu flag
+    <ul>
+      <li><code>O_RDONLY</code> - tylko do odczytu,</li>
+      <li>lub <code>O_RDWR</code> - odczyt i zapis;</li>
+    </ul>
+    oraz pewnej liczby poniższych flag
+    <ul>
+      <li><code>O_CREAT</code> - stwórz fragment <code>SHM</code>, jeśli nie istnieje;</li>
+      <li><code>O_TRUNC</code> - jeśli fragment istnieje to zmień jego rozmiar do <code>0</code>;</li>
+      <li><code>O_EXCL</code> - jeśli <code>O_CREAT</code> jest zdefiniowane i fragment istniej zwróć błąd.</li>
+    </ul>
+
+  </li>
+</ul>
+<p></p>
+<p>
+W przypadku niepowodzenia <code>shm_open</code> zwraca wartość <code>-1</code>
+i ustawia odpowiednią wartość zmiennej <code>errno</code>.
+W razie powodzenia, funkcja zwraca deskryptor pozwalający na dostęp do pamięci o nazwie <code>name</code>.
+Jeśli flaga <code>O_CREAT</code> jest zdefiniowana i fragment pamięci o nazwie <code>name</code> nie istnieje to zostanie
+on utworzony i w systemie plików zostanie utworzony plik specjalny reprezentujący ten fragment (zazwyczaj umieszczony w <code>/dev/shm/</code>).
+Otrzymany deskryptor jest klonowany podczas funkcji <code>fork</code> i automatycznie zamykany
+podczas operacji <code>exec</code>.
+</p>
+
+<p>
+Jeśli wywołanie <code>shm_open</code> stworzyło nowy fragment pamięci, ma on prawa dostępu
+ustawione zgodnie z <code>mode</code> i początkową&nbsp;wielkość <code>0</code>.
+Stworzony fragment pamięci będzie istniał dopóki jego nazwa będzie istniała w systemie plików i
+jakiś proces będzie miał dowiązanie do tego fragmentu pamięci (otwarty deskryptor, aktywne mapowanie).
+</p>
+
+<p>
+Aby zmienić wielkość <code>SHM</code> należy wywołać funkcję <code><a href="http://man7.org/linux/man-pages/man2/ftruncate.2.html">ftruncate</a></code>
+podając deskryptor <code>fd</code> oraz nową wartość wielkości pamięci <code>length</code>:
+</p>
+<div class="myCode"><code>int ftruncate(int fd, off_t length);</code></div>
+<p>
+W przypadku błędu funkcja zwraca <code>-1</code> i ustawia odpowiednią wartość <code> errno</code>.
+W przypadku sukcesu, wartość pamięci jest ustawiana na <code>length</code>. Jeśli nowa wielkość jest mniejsza niż
+poprzednia, nadmiarowe dane zostaną stracone.
+</p>
+<h2 id="h2_dostep_przyklad">Przykład: uzyskanie dostępu do fragmentu pamięci dzielonej.</h2>
+<p>
+Poniższy kod otwiera fragment pamięci dzielonej i obserwuje zmiany
+w systemie plików.
+</p>
+<div class="myCode"><code>//get_memory.c
+#include &lt;time.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;string.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;sys/mman.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;sys/stat.h&gt;        /* For mode constants */
+#include &lt;fcntl.h&gt;           /* For O_* constants */
+
+#include "err.h"
+
+
+#define SHM_NAME "/pw_practice_memory"
+#define NAP_TIME 2
+
+int main(){
+  
+  int fd_memory = -1; /* deskryptor dla pamięci*/
+  
+  printf("Obecnie w /dev/shm znajdują się:\n");
+  if(system("ls /dev/shm")) /*wykonaj komendę&nbsp;systemową ls*/
+    syserr("ls");
+  printf("\n\n");  
+  
+  
+  fd_memory = shm_open(SHM_NAME, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+  
+  if(fd_memory == -1) syserr("shm_open");
+  
+  printf("Stworzyłem fragment pamięci, jeśli nie istniał\n");
+  printf("Obecnie w /dev/shm znajdują się:\n");
+  if(system("ls /dev/shm")) /*wykonaj komendę&nbsp;systemową*/
+    syserr("ls");
+  printf("\n\n");
+
+  sleep(NAP_TIME);
+    
+  close(fd_memory); /*plik specjalny dalej istnieje*/
+  
+  printf("Zamknąłem deskryptor pamięci\n");
+  printf("Obecnie w /dev/shm znajdują się:\n");
+  if(system("ls /dev/shm")) /*wykonaj komendę&nbsp;systemową*/
+    syserr("ls");
+  printf("\n\n");
+  
+  sleep(NAP_TIME);
+  
+  shm_unlink(SHM_NAME); /*usunęliśmy plik specjalny*/
+  
+  printf("Usunąłem plik pamięci\n");
+  printf("Obecnie w /dev/shm znajdują się:\n");
+  if(system("ls /dev/shm")) /*wykonaj komendę&nbsp;systemową*/
+    syserr("ls");
+  printf("\n\n");
+  
+  return 0;
+}
+</code>
+</div>
+<!---KORZYSTANIE SHM -->
+<h2 id="h2_przylaczenie">Przyłączenie pamięci współdzielonej</h2>
+<p>By skorzystać z fragmentu pamięci dzielonej należy go przyłączyć do przestrzeni adresowej procesu.
+Można to uczynić wywołując funkcję <code><a href="http://man7.org/linux/man-pages/man2/mmap.2.html">mmap</a></code>,
+która przyłącza fragment pliku opisanego deskryptorem <code>fd</code> pod adres <code>addr</code>.
+Przyłączony fragment zaczyna się w pozycji <code>offset</code> i ma długość <code>length</code>.
+By zrozumieć jak dokładnie działa funkcja <code>mmap</code> należy wiedzieć, że pamięć wykorzystywana
+przez procesy, a także przez systemy plików jest podzielona na strony, każda strona ma taki sam, ustalony rozmiar,
+który można otrzymać wywołując  <code>sysconf(_SC_PAGE_SIZE)</code>.
+Funkcja <code>mmap</code> pozwala mapować część pliku do pamięci procesu, ta część pliku 
+to pewna liczba kolejnych stron pamięci, znajdująca się w przedziale <code>[offset, offset+length]</code>.
+Oznacza to, że <code>mmap</code> nie dołącza pojedynczych bitów ale całe strony.
+</p><p>
+Funkcja <code>mmap</code> jest zadeklarowana jako
+</p>
+<div class="myCode"><code>void *mmap(void *addr, size_t length, int prot, int flags,
+                  int fd, off_t offset);</code></div>
+<p>
+gdzie
+</p><ul>
+  <li><code>addr</code> to sugestia skierowana do systemu operacyjnego miejsca w pamięci procesu, w którym chcemy przyłączyć fragment pliku,
+    <code>addr = NULL</code> oznacza brak sugestii; <br>
+    <b>Uwaga!</b>: adres ten może zostać zignorowany, i dla przenośności programu powinna zostać podana wartość <code>NULL</code>,
+  </li>
+  <li><code>length</code> to oznacza długość przyłączanego fragmentu</li>
+  <li><code>prot</code> to pole opisujące prawa dostępu do przyłączonych stron pliku, może mieć&nbsp;wartość <code>PROT_NONE</code> (brak dostępu do stron)
+    lub być unią&nbsp;pewnej liczby poniższych flag
+    <ul>
+    <li><code>PROT_EXEC</code> strony mogą być&nbsp;wykonywane,</li>
+    <li><code>PROT_READ</code> strony mogą być&nbsp;czytane,</li>
+    <li><code>PROT_WRITE</code>strony mogą być zapisywane.</li>
+    </ul>
+  </li>
+  <li><code>flags</code> to dodatkowe flagi definiujące parametry przyłączenia;</li>
+  <li><code>fd</code> to deskryptor pliku, którego fragment chcemy dołączyć</li>
+  <li><code>offset</code> to miejsce w pliku, początek dołączanego fragmentu; ta wartość musi być wielokrotnością rozmiaru strony.</li>
+</ul>
+<p></p>
+
+<p>
+Pole <code>flags</code> to bitowa unia jedej z dwu flag
+</p><ul>
+  <li><code>MAP_SHARED</code> - współdziel przyłączenie: wszelkie zmiany dokonane 
+  w tym obszarze są&nbsp;propagowane do pliku wskazanego przez <code>fd</code>,
+  oraz do innych miejsc mapujących ten obszar
+  </li><li><code>MAP_PRIVATE</code> - stwórz prywatną kopię: zmiany dokonane 
+  w tym obszarze nie są&nbsp;propagowane do pliku wskazanego przez <code>fd</code>,
+  ani do innych miejsc mapujących ten obszar;</li>
+</ul>
+<p></p>
+<p>
+oraz pewnej ilości innych flag, o których można przeczytać w <a href="http://man7.org/linux/man-pages/man2/mmap.2.html">dokumentacji</a>, np. flaga <code>MAP_ANONYMOUS</code>,
+która powoduje zignorowanie pola <code>fd</code> i stworzenie mapowania bez użycia zewnętrznego pliku.
+</p>
+
+<p>W przypadku błędu, funkcja <code>mmap</code> zwraca <code>MAP_FAILED</code> i ustawia odpowiednią wartość <code> errno</code>.
+W przypadku sukcesu, funkcja zwraca adres (wskaźnik typu <code>(void *)</code>), w którym faktycznie został przyłączony fragment pliku.
+Z tej pamięci możemy teraz korzystać tak jak z pamięci lokalnej procesu, np. jak z tablicy
+</p>
+
+<p>Jak wynika z opisu funkcja <code>mmap</code> pozwala na przyłączenie nie tylko fragmentów pamięci współdzielonej, 
+ale także innych struktur do których dostęp jest obsługiwany przez deskryptory i działanie funkcji <code>mmap</code> jest zdefiniowane.
+W przypadku <code>SHM</code> zwyczajowo wywołujemy mmap z parametrami
+</p>
+<div class="myCode"><code>mmap(NULL , length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);</code></div>
+<p>
+Po przyłączeniu <code>SHM</code> do procesu możemy korzystać z tej pamięci w ten sam sposób
+co z pamięci lokalnej procesu, a system zadba by wszelki zmiany były propagowane do innych użytkowników 
+tego fragmentu pamięci, zgodnie z ustawionymi flagami.
+</p>
+
+<h2 id="h2_koniec">Kończenie pracy z pamięcią współdzieloną</h2>
+<p>
+Kiedy proces już nie chce korzystać z pamięci współdzielonej musi odłączyć ją z przestrzeni adresowej
+i zamknąć związany z nią deskryptor.
+Deskryptor zamykamy znanym nam poleceniem <code>void close(int fd)</code>,
+natomiast odłączenie jest dokonywane za pomocą funkcji <code>munmap</code>
+</p>
+<div class="myCode"><code>int munmap(void *addr, size_t length);</code></div>
+<p>
+gdzie 
+</p><ul>
+  <li><code>addr</code> to adres w pamięci procesu, będący wielokrotnością rozmiaru strony, od którego
+  zaczyna się pamięć, którą chcemy odłączyć,</li>
+  <li>a <code>length</code> to rozmiar pamięci, którą chcemy odłączyć.</li>
+</ul>
+<p></p>
+
+<p>W przypadku błędu funkcja zwraca <code>-1</code> i ustawia odpowiednią wartość <code> errno</code>.
+W przypadku sukcesu, funkcja zwraca <code>0</code>, i odłącza z przestrzeni adresy znajdujące się na stronach
+zawierających adresy z przedziału <code>[addr, addr + len]</code>.
+</p>
+<p>
+<b>Uwaga!</b> Samo zamknięcie deskryptora nie powoduje odłączenie <code>SHM</code>. Z podłączonej pamięci można korzystać nawet
+po zamknięciu deskryptora. Co więcej, usunięcie wszystkich przyłączonych fragmentów nie musi zwolnić zasobów 
+systemowych związanych z tym fragmentem pamięci, plik specjalny ciągle może istnieć.
+</p>
+<p>
+By usunąć&nbsp;plik specjalny związany z fragmentem pamięci dzielonej o nazwie <code>name</code>
+należy wywołać funkcję <code><a href="http://man7.org/linux/man-pages/man3/shm_open.3.html">shm_unlink</a></code>
+</p>
+<div class="myCode"><code>int shm_unlink(const char *name);</code></div>
+<p>
+Powyższa funkcja powoduje usunięcie pliku specjalnego z systemu plików, 
+ale nie samego fragmentu pamięci współdzielonej.
+Nawet po usunięciu pliku fragment pamięci będzie istniał w systemie, 
+dopóki jakiś proces będzie z niego korzystał, czyli będzie miał
+deskryptor związany z tym fragmentem lub cześć adresów procesu będzie 
+mapowana na tę pamięć dzieloną.
+Co więcej, deskryptory i przyłączone fragmenty pozostaną w pełni 
+funkcjonalne.
+</p>
+<!-- KORZYSTANIE PRZYKLAD-->
+<h2 id="h2_korzystanie_przyklad">Przykład: korzystanie z pamięci współdzielonej</h2>
+<p>Poniższy przykład prezentuje prostą komunikację z wykorzystaniem pamięci dzielonej.
+Rodzic otwiera pamięć dzieloną, następnie tworzy dziecko i wpisuje do fragmentu jedno zdanie.
+Dziecko ma je odczytać.
+Synchronizacja jest wymuszona usypianiem procesów <code>sleep</code>.</p>
+<div class="myCode"><code>//send_message.c
+#include &lt;time.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;string.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;sys/mman.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;sys/wait.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;sys/stat.h&gt;        /* For mode constants */
+#include &lt;fcntl.h&gt;           /* For O_* constants */
+
+#include "err.h"
+
+
+#define SHM_NAME           "/pw_practice_memory"
+#define NAP_TIME           2
+#define BUFF_SIZE          12
+#define EXTRA_SIZE         0  //co jeśli 12, sysconf(_SC_PAGE_SIZE)?
+
+void print_table(char *t, int len){
+  
+  int i;
+  
+  printf("Proces %d, tablica pod adresem %p:\n", getpid(), t);
+  for(i = 0; i &lt; len + EXTRA_SIZE; ++i)
+    printf("|%c", t[i]);
+  printf("|\n\n");
+  
+  return;
+}
+
+
+int main(){
+  
+  char buff[BUFF_SIZE] = "Ala ma kota";
+  char *mapped_mem;
+  int fd_memory = -1; /* deskryptor dla pamięci*/
+  int flags, prot;
+  pid_t pid;
+    
+  printf("Wielkość strony to %lu\n", sysconf(_SC_PAGE_SIZE));
+    
+  fd_memory = shm_open(SHM_NAME, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+  if(fd_memory == -1) syserr("shm_open");
+  
+  if (ftruncate(fd_memory, BUFF_SIZE) == -1)
+    syserr("truncate");
+  
+ 
+  prot = PROT_READ | PROT_WRITE;
+  flags = MAP_SHARED;
+  //flags = MAP_PRIVATE;
+  mapped_mem = (char *) mmap(NULL, BUFF_SIZE, prot, flags,
+                  fd_memory, 0);
+  
+  /*Plik specjalny nam już niepotrzebny*/
+  close(fd_memory); /*plik specjalny dalej istnieje*/
+  shm_unlink(SHM_NAME); /*usunęliśmy plik specjalny*/ //Co się stanie, jeśli zakomentuję?
+  
+  if(mapped_mem == MAP_FAILED){
+    syserr("mmap");
+  }
+
+  print_table(mapped_mem, BUFF_SIZE);
+  
+  sleep(NAP_TIME);
+    
+  switch(pid = fork()){
+    case -1:
+      syserr("fork");
+    case 0:
+      sleep(NAP_TIME);
+      print_table(mapped_mem, BUFF_SIZE);
+      sleep(2* NAP_TIME);
+      print_table(mapped_mem, BUFF_SIZE);
+      munmap(mapped_mem, BUFF_SIZE);
+      return 0;
+    default:
+      break;
+  }
+  
+  printf("Pid rodzica %d, pid dziecka: %d\n", getpid(), pid);
+  print_table(mapped_mem, BUFF_SIZE);
+  sleep(2* NAP_TIME);
+  
+  
+  strncpy(mapped_mem, buff, BUFF_SIZE);
+  printf("Proces %d, Zmieniłem zawartosć pamięci\n", getpid());
+  print_table(mapped_mem, BUFF_SIZE);
+  
+  wait(0);
+  munmap(mapped_mem, BUFF_SIZE); // w zasadzie niepotrzebne
+  
+  return 0;
+}
+
+
+
+</code></div>
+
+
+<!-- ANONIM -->
+<h2 id="h2_anonim_pamiec">Przykład: Anonimowa pamięć współdzielona</h2>
+<p>Linux umożliwia na korzystanie z współdzielenie pamięci między procesami, bez jawnego
+użycia struktur SHM. Wynika to z faktu, że podczas operacji <code>fork</code>, przyłączone
+przestrzenie adresów są kopiowane, a niezbędne struktury do obsługi mapowania znajdują się w
+systemie operacyjnym.</p>
+<p>Uwaga! Program pozwala także zaprezentować pewne własności implementacji funkcji mmap:
+zmiana zdefiniowanych stałych może zmienić zachowanie programu.</p>
+
+<div class="myCode"><code>//unnamed_memory.c
+#include &lt;time.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;string.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;sys/mman.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;sys/wait.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;sys/stat.h&gt;        /* For mode constants */
+#include &lt;fcntl.h&gt;           /* For O_* constants */
+
+#include "err.h"
+
+
+#define NAP_TIME 2            //sleep
+#define BUFF_SIZE 12          //bufor
+#define EXTRA_SIZE 0  //co jeśli 12, sysconf(_SC_PAGE_SIZE)?
+//stała potrzebna by mieć&nbsp;pewność, że zaalokuję&nbsp;dwie strony
+#define EXTRA_MAPPING_SIZE sysconf(_SC_PAGE_SIZE) 
+
+
+void print_table(char *t, int len){
+  
+  int i;
+  
+  printf("Proces %d, tablica pod adresem %p:\n", getpid(), t);
+  for(i = 0; i &lt; len; ++i)
+    printf("|%c", t[i]);
+  printf("|\n\n");
+  
+  return;
+}
+
+int main(){
+  
+  char buff[BUFF_SIZE] = "Ala ma kota";
+  char *mapped_mem;
+  int fd_memory = -1; /* deskryptor dla pamięci*/
+  int flags, prot;
+  pid_t pid;
+    
+  printf("Wielkość strony to %lu\n", sysconf(_SC_PAGE_SIZE));
+    
+  prot = PROT_READ | PROT_WRITE;
+  flags = MAP_SHARED | MAP_ANONYMOUS; // nie ma pliku, fd winno być -1
+  //flags = MAP_PRIVATE;
+  // zarezerwuj dwie strony
+  mapped_mem = (char *) mmap(NULL, BUFF_SIZE + EXTRA_MAPPING_SIZE, prot, flags,
+                  fd_memory, 0);
+  
+  if(mapped_mem == MAP_FAILED)
+    syserr("mmap");
+
+  print_table(mapped_mem, BUFF_SIZE);
+  
+  sleep(NAP_TIME);
+    
+  switch(pid = fork()){
+    case -1:
+      syserr("fork");
+    case 0:
+      sleep(NAP_TIME);
+      print_table(mapped_mem, BUFF_SIZE);
+      sleep(2* NAP_TIME);
+      print_table(mapped_mem, BUFF_SIZE);
+      munmap(mapped_mem, BUFF_SIZE); // i tak zmiknie wraz z procesem
+      return 0;
+    default:
+      break;
+  }
+  
+  printf("Pid rodzica %d, pid dziecka: %d\n", getpid(), pid);
+  print_table(mapped_mem, BUFF_SIZE);
+  sleep(2* NAP_TIME);
+  
+  
+  strncpy(mapped_mem, buff, BUFF_SIZE);
+  strncpy(mapped_mem + EXTRA_MAPPING_SIZE, buff, BUFF_SIZE);
+  printf("Proces %d, Zmieniłem zawartosć pamięci\n", getpid());
+  print_table(mapped_mem, BUFF_SIZE);
+
+  
+  wait(0);
+<span class="comment">/* Co się stanie, jeśli dopuszczę część/wszystkie poniższe linie kodu  
+  printf("Odłączam pierwszą stronę, wynik: %d\n", // i tak zniknie, kiedy proces zginie
+          munmap(mapped_mem + EXTRA_MAPPING_SIZE, BUFF_SIZE)); 
+  printf("Odłączam drugą stronę, wynik: %d\n",
+  munmap(mapped_mem, BUFF_SIZE)); // i tak zniknie, kiedy proces zginie
+  
+  //print_table(mapped_mem, BUFF_SIZE);
+  //print_table(mapped_mem + EXTRA_MAPPING_SIZE, BUFF_SIZE);
+  
+*/</span>
+  return 0;
+}
+</code></div>
+
+<h1 id="h1_semafory">Semafory</h1>
+
+<p>Pamięć współdzielona, jak sama nazwa wskazuje jest przeznaczona do pracy z wieloma procesami.
+Oznacza to, że dostęp od niej powinien synchronizowany. Do synchronizacji można wykorzystać np. semafory.
+Jak w przypadku pamięci dzielonej system Linux oferuje co najmniej dwa typy semaforów tzw. <code>tablice semaforów</code>
+i <code>semafory zgodne z POSIX</code>.</p>
+
+<p>W dalszej części tego scenariusza zajmiemy się implementacją semaforów zgodną z <code>POSIX</code>,
+o tablicach semaforów można przeczytać np. <a href="">tu</a>.</p>
+
+<p>Semafory zgodne z <code>POSIX</code>, udostępniają dwie podstawowe operacje <code> sem_post</code>,
+odpowiadającą operacji <code>V</code>, oraz <code>sem_wait</code>, odpowiadającą operacji <code>P</code>
+i są udostępniane w dwu wersjach: <i>nazwanej</i> - z powiązanym plikiem specjalnym - i <code>nienazwanej</code> - umieszczone 
+jedynie w pamięci programu.
+Obie wersje semaforów, charakteryzują się podobną funkcjonalnością synchronizacji.
+Różnią się jedynie sposobem pozyskania, inicjalizacji i zwalniania.
+</p>
+
+<!---NAZWANE SEM-->
+<h2 id="h2_nazwane_sem">Pozyskanie semaforów nazwanych</h2>
+<p>Tak jak fragmenty pamięci dzielonej, nazwane semafory mają nazwę&nbsp;<code>name = /somename</code>, nie dłuższą niż <code>NAME_MAX-4</code>, i
+związany plik specjalny <code>/dev/shm/sem.name</code>.</p>
+
+<p>By uzyskać dostęp do semafora należy wywołać funkcję <code><a href="http://man7.org/linux/man-pages/man3/sem_open.3.html">sem_open</a></code></p>
+<div class="myCode"><code>sem_t *sem_open(const char *name, int oflag,
+                       mode_t mode, unsigned int value);
+</code></div>
+<p>gdzie,</p>
+<ul>
+  <li><code>name</code> to nazwa semafora,</li>
+  <li>
+    <code>oflag</code> to flagi, modyfikujące działanie funkcji i związane 
+  
+  
+  </li>
+  <li><code>name</code> to uprawnienia, używane przy tworzeniu semafora,</li>
+  <li><code>value</code> to początkowa wartość semafora.</li>
+
+</ul>
+<p>
+W przypadku błędu funkcja zwraca <code>SEM_FAILED</code> i ustawia odpowiednią wartość <code> errno</code>.
+W przypadku sukcesu, funkcja zwraca adres nowego semafora. 
+</p>
+<p>
+Uwaga!: Jeśli przed wykonaniem <code>sem_open</code> semafor istniał to <code>name</code> i <code>value</code> są&nbsp;ignorowane,
+a referencja, którą&nbsp;otrzymujemy odnosi się do już istniejącego i (obecnie) współdzielonego semafora.
+</p>
+
+<p>
+  Po zakończeniu korzystania z semafora, należy zwolnić zasoby pobrane przy pozyskaniu semafora.
+  By tego dokonać wywołujemy funkcję&nbsp;<code><a href="http://man7.org/linux/man-pages/man3/sem_close.3.html">sem_close</a></code>
+</p>
+<div class="myCode"><code>int sem_close(sem_t *sem);</code></div>
+<p>
+która pozwala, by zasoby systemowe użyte do obsługi semafora przez proces zostały zwolnione.
+Funkcja ta nie powoduje usunięcia powiązanego pliku specjalnego, aby tego dokonać należy wywołać
+funkcję <code><a href="http://man7.org/linux/man-pages/man3/sem_unlink.3.html">sem_unlink</a></code>
+</p>
+<div class="myCode"><code>int sem_unlink(const char *name);</code></div>
+<p>
+  gdzie <code>name</code> to nazwa semafora.
+  W przypadku błędu funkcja zwraca <code>-1</code> i ustawia odpowiednią wartość <code> errno</code>.
+  W przypadku sukcesu, funkcja zwraca <code>0</code>.
+</p>
+
+<!---NIENAZWANE -->
+<h2 id="h2_nienazwane_sem">Pozyskanie semaforów nienazwanych</h2>
+<p>
+  Nienazwane semafory nie mają&nbsp;nazwy, a tym samym powiązanego pliku specjalnego.
+  Z tego powodu muszą być umieszczone w pamięci procesu.
+  By skorzystać z nienazwanych semaforów należy zarezerwować fragment 
+  pamięci (np. poprzez zadeklarowanie zmiennej typu <code>sem_t</code>) 
+  w miejscu dostępnym dla wszystkich procesów (wątków), które mają z niego korzystać.
+</p>
+
+<p>
+Przed użyciem semafora nienazwanego należy go zainicjalizować przy pomocy funkcji
+<code><a href="http://man7.org/linux/man-pages/man3/sem_init.3.html">sem_init</a></code>
+</p>
+<div class="myCode"><code>int sem_init(sem_t *sem, int pshared, unsigned int value);</code></div>
+<p>
+gdzie 
+</p>
+<ul>
+  <li><code>sem</code> to adres semafora,</li>
+  <li><code>value</code> to początkowa wartość semafora,</li>
+  <li>a <code>phsared</code>, to informacja czy semafor będzie współdzielony przez wątki czy przez procesy.</li>
+</ul>
+<p>
+Jeśli <code>phsared = 0</code> to semafor będzie współdzielony przez wątki procesu i może zostać w lokalnej przestrzeni procesu, 
+wpp. semafor będzie współdzielony przez procesy i powinien był być umieszczony pamięci dostępnej dla wszystkich procesów,
+np. w we fragmencie pamięci współdzielonej. <br>
+W przypadku błędu funkcja zwraca <code>-1</code> i ustawia odpowiednią wartość <code> errno</code>.
+W przypadku sukcesu, funkcja zwraca <code>0</code>.
+</p>
+<p>
+Po zakończeniu pracy z semaforem należy go zwolnić poprzez wywołanie funkcji <code><a href="http://man7.org/linux/man-pages/man3/sem_destroy.3.html">sem_destroy</a></code>
+</p>
+<div class="myCode"><code>int sem_destroy(sem_t *sem);</code></div>
+<p>
+gdzie <code>sem</code> adres semafora.
+W przypadku błędu funkcja zwraca <code>-1</code> i ustawia odpowiednią wartość <code> errno</code>.
+W przypadku sukcesu, funkcja zwraca <code>0</code>.
+</p>
+<p>
+Uwaga!: Powyższa funkcja niszczy struktury systemowe związane z 
+semaforem, zatem nie należy jej wywoływać, jeśli 
+jakiś&nbsp;proces (wątek) korzysta z tego semafora. Co więcej, nie 
+należy niszczyć&nbsp;semaforów, które nie były zainicjalizowane <code>sem_init</code>.
+Korzystanie ze zniszczonego semafora, lub niszczenie semafora w czasie użycia ma charakter niezdefiniowanego zachowania.
+</p>
+<h2 id="h2_operacje_sem">Operacje na semaforach</h2>
+<p>
+Gdy mamy dostęp do istniejącego i zainicjalizowanego semafora możemy wykonać&nbsp;standardowe operacje semaforowe.
+</p>
+<p>
+Funkcja <code><a href="http://man7.org/linux/man-pages/man3/sem_wait.3.html">sem_wait</a></code>
+</p>
+<div class="myCode"><code>int sem_wait(sem_t *sem);</code></div>
+<p>
+obniża wartość&nbsp;semafora <code>sem</code> o wartość <code>1</code>, ale tak by nie spadła poniżej <code>0</code>.
+Jeśli można zmniejszyć wartość&nbsp;semafora, funkcja wraca natychmiast.
+Jeśli nie może obniżyć&nbsp;tej wartości, proces (wątek) zostaje wstrzymany do momentu, kiedy będzie mógł obniżyć&nbsp;wartość
+lub nastąpi przerwanie związane z obsługą sygnału.
+W przypadku błędu funkcja zwraca <code>-1</code> i ustawia odpowiednią wartość <code> errno</code>.
+W przypadku sukcesu, funkcja zwraca <code>0</code>.
+</p>
+
+Funkcja <code><a href="http://man7.org/linux/man-pages/man3/sem_post.3.html">sem_post</a></code>
+<p></p>
+<div class="myCode"><code>int sem_post(sem_t *sem);</code></div>
+<p>
+zwiększa wartość semafora <code>sem</code> w wartość <code>1</code>.
+Jeśli wartość staje się&nbsp;większa niż <code>0</code> i istnieje wstrzymany proces (wątek)
+to zostanie obudzony.
+W przypadku błędu funkcja zwraca <code>-1</code> i ustawia odpowiednią wartość <code> errno</code>.
+W przypadku sukcesu, funkcja zwraca <code>0</code>.
+</p>
+<h2 id="h2_nazwane_sem_przyklad">Przykład: Semafory nazwane</h2>
+<p>Poniższy przykład prezentuje prostą synchronizację dostępu do pamięci współdzielonej.
+Rodzic: uzyskuje dostęp do <code>SHM</code> i tworzy semafor, pełniący
+funkcję&nbsp;synchronizacyjną. Następnie, tworzy dziecko, zapisuje wiadomość do fragmentu pamięci i kończy działanie.</p>
+<p>Dziecko: dziedziczy dostęp do fragmentu pamięci współdzielonej, uzyskuje dostęp do semafora,
+a  następnie próbuje odczytać wiadomość od rodzica. </p>
+
+<p>Uwaga: By zobaczyć implementację korzystającą z semaforów nienazwanych przejdź
+do następnego przykładu.</p>
+
+<div class="myCode"><code>//send_message_protected.c
+#include &lt;unistd.h&gt;
+#include &lt;string.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;sys/mman.h&gt;
+#include &lt;semaphore.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;sys/wait.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;sys/stat.h&gt;        /* For mode constants */
+#include &lt;fcntl.h&gt;           /* For O_* constants */
+
+#include "err.h"
+
+
+#define SHM_NAME           "/pw_practice_memory"
+#define SEM_NAME           "/pw_practice_sem"
+#define NAP_TIME           2
+#define BUFF_SIZE          12
+#define EXTRA_SIZE         0  //co jeśli 12, sysconf(_SC_PAGE_SIZE)?
+
+
+
+void print_table(char *t, int len){
+  
+  int i;
+  
+  printf("Proces %d, tablica pod adresem %p:\n", getpid(), t);
+  for(i = 0; i &lt; len + EXTRA_SIZE; ++i)
+    printf("|%c", t[i]);
+  printf("|\n\n");
+  
+  return;
+}
+
+
+int main(){
+  
+  char buff[BUFF_SIZE] = "Ala ma kota";
+  char *mapped_mem;
+  int fd_memory = -1; /* deskryptor dla pamięci*/
+  int flags, prot;
+  pid_t pid;
+  sem_t *sem;
+    
+  printf("Wielkość strony to %lu\n", sysconf(_SC_PAGE_SIZE));
+  
+  //pamięć współdzielona
+  fd_memory = shm_open(SHM_NAME, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+  if(fd_memory == -1) syserr("shm_open");
+  
+  if (ftruncate(fd_memory, BUFF_SIZE) == -1)
+    syserr("truncate");
+  
+ 
+  prot = PROT_READ | PROT_WRITE;
+  flags = MAP_SHARED;
+  mapped_mem = (char *) mmap(NULL, BUFF_SIZE, prot, flags,
+                  fd_memory, 0);
+  
+  /*Plik specjalny nam już niepotrzebny*/
+  close(fd_memory); /*plik specjalny dalej istnieje*/
+  shm_unlink(SHM_NAME); /*usunęliśmy plik specjalny*/ //Co się stanie, jeśli zakomentuję?
+  
+  if(mapped_mem == MAP_FAILED)
+    syserr("mmap");
+
+  print_table(mapped_mem, BUFF_SIZE);
+  
+  //semafor
+  sem = sem_open(SEM_NAME, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR, 0);
+  if (sem == SEM_FAILED)
+    syserr("parent sem_open");
+  if (sem_close(sem))
+        syserr("parent sem_close");
+  
+    
+  switch(pid = fork()){
+    case -1:
+      syserr("fork");
+    case 0:
+      //częsć wartosci będzie zignorowana
+      sem = sem_open(SEM_NAME, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR, 0);
+      if (sem == SEM_FAILED)
+        syserr("child sem_open");
+      if (sem_wait(sem))
+        syserr("child sem_wait");
+      
+      print_table(mapped_mem, BUFF_SIZE);
+      munmap(mapped_mem, BUFF_SIZE);
+      return 0;
+    default:
+      printf("Pid rodzica %d, pid dziecka: %d\n", getpid(), pid);
+      break;
+  }
+  //tylko rodzic ma dostep do pamięci
+  sleep(NAP_TIME);
+  strncpy(mapped_mem, buff, BUFF_SIZE);
+  printf("Proces %d, Zmieniłem zawartosć pamięci\n", getpid());
+  print_table(mapped_mem, BUFF_SIZE);
+  sem = sem_open(SEM_NAME, O_RDWR); // skrócona wersja bez O_CREAT
+  if (sem == SEM_FAILED)
+    syserr("parent sem_open 2");
+  if (sem_post(sem))
+    syserr("parent sem_post");
+  
+  //sprzątanie
+  wait(0);
+  sem_close(sem);
+  sem_unlink(SEM_NAME);
+  munmap(mapped_mem, BUFF_SIZE); // w zasadzie niepotrzebne
+  
+  return 0;
+}</code></div>
+
+
+<h2 id="h2_nienazwane_sem_przyklad">Przykład: Semafory nienazwane</h2>
+<p>Poniższy przykład jest implementacją przykładu z <i>Semafory nazwane</i>
+z wykorzystaniem nienazwanego wariantu semaforów.</p>
+
+<div class="myCode"><code>//unnamed_memory_protected.c
+#include &lt;time.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;string.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;sys/mman.h&gt;
+#include &lt;semaphore.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;sys/wait.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;sys/stat.h&gt;        /* For mode constants */
+#include &lt;fcntl.h&gt;           /* For O_* constants */
+
+#include "err.h"
+
+
+#define NAP_TIME 2            //sleep
+#define BUFF_SIZE 12          //bufor
+
+
+void print_table(char *t, int len){
+  
+  int i;
+  
+  printf("Proces %d, tablica pod adresem %p:\n", getpid(), t);
+  for(i = 0; i &lt; len; ++i)
+    printf("|%c", t[i]);
+  printf("|\n\n");
+  
+  return;
+}
+
+
+int main(){
+  
+  char buff[BUFF_SIZE] = "Ala ma kota";
+  void *mapped_mem_all;
+  char *mapped_mem;
+  int fd_memory = -1; /* deskryptor dla pamięci*/
+  int flags, prot;
+  sem_t *sem;
+  pid_t pid;
+    
+  printf("Wielkość strony to %lu\n", sysconf(_SC_PAGE_SIZE));
+    
+  prot = PROT_READ | PROT_WRITE;
+  flags = MAP_SHARED | MAP_ANONYMOUS; // nie ma pliku, fd winno być -1
+  // zarezerwuj miejsce na semafor i bufor
+  mapped_mem_all = mmap(NULL, sizeof(sem_t) + BUFF_SIZE, prot, flags,
+                  fd_memory, 0);
+  
+  if(mapped_mem_all == MAP_FAILED)
+    syserr("mmap");
+
+  //podział pamięci na semafor i bufor
+  mapped_mem = (char *) (mapped_mem_all + sizeof(sem_t));
+  sem = (sem_t *) mapped_mem_all;
+
+  print_table(mapped_mem, BUFF_SIZE);
+  
+  if(sem_init(sem, 1, 0))
+    syserr("sem_init");
+  
+    
+  switch(pid = fork()){
+    case -1:
+      syserr("fork");
+    case 0:
+      if(sem_wait(sem))
+        syserr("sem_wait");
+      print_table(mapped_mem, BUFF_SIZE);
+      munmap(mapped_mem, BUFF_SIZE); // i tak zmiknie wraz z procesem
+      return 0;
+    default:
+      printf("Pid rodzica %d, pid dziecka: %d\n", getpid(), pid);
+      break;
+  }
+  //wymuszam sen dziecka, synchronizacja
+  sleep(NAP_TIME);
+  
+  strncpy(mapped_mem, buff, BUFF_SIZE);
+  printf("Proces %d, Zmieniłem zawartosć pamięci\n", getpid());
+  print_table(mapped_mem, BUFF_SIZE);
+  if(sem_post(sem))
+    syserr("sem_post");
+  
+  //sprzątanie
+  wait(0);
+  sem_destroy(sem);
+  munmap(mapped_mem_all,  sizeof(sem_t) + BUFF_SIZE); // i tak zniknie, kiedy proces zginie
+
+  return 0;
+}
+
+</code></div>
+
+<h1 id="h1_zadanie">Zadanie: Bufor cykliczny</h1>
+
+<p>Wykorzystaj pamięć współdzieloną by stworzyć <code>N</code>-elementowy bufor cykliczny.</p>
+
+<p>W systemie pracuje <code>P</code> <code>producent</code>ów oraz <code>K</code> 
+<code>konsument</code>ów. 
+Każdy <code>producent</code>, w pętli, generuje liczbę <code>x = LOSUJ(1,4)</code> a następnie
+publikuje swój produkt <code>printf("Ja, %d, stworzyłam/em (%d, %d)\n",getpid(), x, getpid());</code>
+i umieszcza go w buforze <code>(x,getpid())</code>.
+
+Każdy <code>konsument</code>, w pętli, pobiera z buforu produkt będący parą <code>(x,pid)</code>.
+Następnie dzieli się&nbsp;na portalu społecznościowym informacją 
+jaki produkt pobrał <code>printf("Ja, %d, otrzymałam/em (%d, %d)\n",getpid(), x, pid);</code>
+i go konsumuje przez <code>x</code> sekund.</p>
+
+<p>Napisz treści programów <code>producent</code>, <code>konsument</code> oraz <code>bufor</code>. 
+Program <code>bufor</code> ma za zadanie stworzyć odpowiednie struktury i uruchomić&nbsp;
+producentów i konsumentów.</p>
+<p>Uwaga! Należy zadbać o synchronizację informacji wypisywanych na wyjście programu <code>bufor</code>.
+Każdy producent powinien stworzyć <code>M</code> produktów.</p>
+
+</body></html>

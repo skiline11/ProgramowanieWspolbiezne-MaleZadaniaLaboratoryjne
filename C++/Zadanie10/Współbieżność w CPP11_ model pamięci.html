@@ -1,0 +1,450 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!-- saved from url=(0076)https://www.mimuw.edu.pl/~janowska/PW-LAB/10-cpp-model-pamieci/cpp-lab4.html -->
+<html xmlns="http://www.w3.org/1999/xhtml" lang="pl" xml:lang="pl"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Współbieżność w CPP11: model pamięci</title>
+<!-- 2017-12-04 Mon 11:44 -->
+
+<meta name="generator" content="Org-mode">
+<meta name="author" content="Krzysztof Rządca">
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { color: green; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: visible;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  pre.src-sh:before    { content: 'sh'; }
+  pre.src-bash:before  { content: 'sh'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-R:before     { content: 'R'; }
+  pre.src-perl:before  { content: 'Perl'; }
+  pre.src-java:before  { content: 'Java'; }
+  pre.src-sql:before   { content: 'SQL'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.right  { text-align: center;  }
+  th.left   { text-align: center;   }
+  th.center { text-align: center; }
+  td.right  { text-align: right;  }
+  td.left   { text-align: left;   }
+  td.center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara:nth-child(2) { display: inline; }
+  .footpara { display: block; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  /*]]>*/-->
+</style>
+<link href="./Współbieżność w CPP11_ model pamięci_files/cpp-theme.css" rel="stylesheet">
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2013 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">Współbieżność w CPP11: model pamięci</h1>
+<div id="table-of-contents">
+<h2>Spis treści</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/10-cpp-model-pamieci/cpp-lab4.html#sec-1">1. Implementacja algorytmu Petersona</a></li>
+<li><a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/10-cpp-model-pamieci/cpp-lab4.html#sec-2">2. Zmienne volatile</a></li>
+<li><a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/10-cpp-model-pamieci/cpp-lab4.html#sec-3">3. Zmienne std::atomic</a></li>
+<li><a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/10-cpp-model-pamieci/cpp-lab4.html#sec-4">4. std::atomic do nieblokujących struktur danych</a></li>
+<li><a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/10-cpp-model-pamieci/cpp-lab4.html#sec-5">5. Zadanie: implementacja algorytmu Dekkera</a></li>
+<li><a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/10-cpp-model-pamieci/cpp-lab4.html#sec-6">6. Bibliografia</a></li>
+</ul>
+</div>
+</div>
+<p>
+Dwie operacje pamięci są w konflikcie, gdy jedna zapisuje, a druga
+odczytuje ten sam adres.  Wyścig (data race) zachodzi, gdy te operacje
+wykonywane są równocześnie, a w modelu ze spójnością sekwencyjną
+(sequential consistency) byłyby wykonywane jedna po drugiej.  Języki
+programowania gwarantują spójność sekwencyjną wtedy i tylko wtedy, gdy
+kod nie ma wyścigów.
+</p>
+
+<p>
+Na laboratorium będziemy eksplorować obrzeża modelu pamięci CPP11
+implementując algorytmy wzajemnego wykluczania. W tym celu będziesz
+uruchamiać procesy w różnych wariantach:
+</p>
+
+<ul class="org-ul">
+<li>taskset: uruchamia proces na określonych procesorach, np: <code>taskset
+  0x1 ./mutual-excl</code> (1 procesor), albo <code>taskset 0x3 ./mutual-excl</code> (2
+procesory).
+</li>
+<li>optymalizacje kompilatora (plik <code>CMakeLists.txt</code>, zmienna
+<code>CMAKE_CXX_FLAGS</code>): <code>O0</code> wyłącza optymalizację; kolejne liczby to
+coraz bardziej zaawansowane optymalizacje
+<a href="https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html">https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html</a>
+</li>
+<li>brak wzajemnego wykluczania (<code>mutual-excl.cpp</code>) vs. twoja
+implementacja algorytmu Petersona.
+</li>
+</ul>
+
+<p>
+Dla każdej kombinacji wariantów spróbuj przewidzieć poprawność wyniku.
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> Implementacja algorytmu Petersona</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+Rozwiń szablon <code>mutual-excl.cpp</code> implementując zawartość <code>entry_protocol</code> i <code>exit_protocol</code>.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> Zmienne volatile</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+Oznacz zmienne synchronizacyjne w algorytmie Petersona jako
+<code>volatile</code>.
+</p>
+
+<p>
+<code>volatile</code> w CPP11 nie ma semantyki volatile w javie. <code>volatile</code>
+powinno być używane tylko do oznaczenia zmiennych przechowywanych w
+specjalnej pamięci, tzn. pamięci, która może być zmieniana poza
+wykonywanym procesem (taką pamięcią jest np. memory-mapped I/O).
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> Zmienne std::atomic</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+CPP11 pozwala na oznaczenie zmiennych jako <code>std::atomic</code>.
+<code>std::atomic&lt;T&gt;</code> jest szablonem zdefiniowanym dla trywialnie
+kopiowalnego typu <code>T</code> udostępniającym następujące atomowe operacje
+(pełna lista: <a href="http://en.cppreference.com/w/cpp/atomic/atomic">http://en.cppreference.com/w/cpp/atomic/atomic</a>):
+</p>
+<ul class="org-ul">
+<li><code>T load()</code>: zwraca akutalną wartość (równoważne z operatorem <code>T()</code>);
+</li>
+<li><code>void store(T desired)</code>: zamienia wartość na <code>desired</code> (równoważne z
+operatorem <code>=</code>);
+</li>
+<li><code>T exchange(T desired)</code>: zamienia wartość na <code>desired</code> i zwraca
+poprzednią wartość
+</li>
+<li><code>bool compare_exchange_weak / compare_exchange_strong(T&amp; expected, T
+  desired)</code>: o tym dalej.
+</li>
+</ul>
+
+<p>
+Oprócz tych operacji biblioteka standardowa oferuje specjalizacje
+<code>std::atomic</code> dla typów całkowitoliczbowych udostępniające atomowe
+funkcje m.in.:
+</p>
+<ul class="org-ul">
+<li><code>fetch_add</code> / <code>fetch_sub</code>: zwróć dotychczasową wartość, następnie
+atomowo dodaj / odejmij argument
+</li>
+<li><code>operator++</code> oraz <code>operator+=</code>.
+</li>
+</ul>
+
+<p>
+Dla typów wskaźnikowych <code>std::atomic&lt;T*&gt;</code> dostępne są atomowe
+operacje:
+</p>
+<ul class="org-ul">
+<li><code>fetch_add</code>: zwróć aktualną wartość wskaźnika, następnie przesuń go
+do przodu o argument;
+</li>
+<li><code>fetch_sub</code>: zwróć aktualną wartość wskaźnika, następnie przesuń go
+do tyłu o argument.
+</li>
+</ul>
+
+<p>
+Dodatkowo model pamięci CPP11 traktuje operacje na zmienych
+<code>std::atomic</code> jak instrukcje synchronizacyjne, a nie jak zwykłe
+instrukcje odczytu/zapisu. Standardową semantyką jest spójność liniowa
+(<code>std::memory_order_seq_cst</code>), ale można wymusić semantyki słabsze
+przez argumenty funkcji <code>load</code>, <code>store</code>, <code>exchange</code>, czy
+<code>compare_exchange_weak</code> (patrz <a href="http://en.cppreference.com/w/cpp/atomic/memory_order">http://en.cppreference.com/w/cpp/atomic/memory_order</a>).
+</p>
+
+<p>
+Sprawdź wynik następującego kodu (kod ten wykorzystuje metodę
+<code>operator++</code> specjalizacji <code>std::atomic&lt;int&gt;</code> szablonu <code>std::atomic</code>).
+</p>
+
+<p>
+atomic-volatile.cpp
+</p>
+<div class="org-src-container">
+
+<pre class="src src-cpp"><span class="org-preprocessor">#include</span> <span class="org-string">&lt;thread&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;iostream&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;atomic&gt;</span><br>
+<br>
+<span class="org-constant">std</span>::<span class="org-type">atomic</span>&lt;<span class="org-type">int</span>&gt; <span class="org-variable-name">a</span>{0};<br>
+<span class="org-keyword">volatile</span> <span class="org-type">int</span> <span class="org-variable-name">v</span>{0};<br>
+<br>
+<span class="org-type">void</span> <span class="org-function-name">f</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">for</span> (<span class="org-type">int</span> <span class="org-variable-name">i</span> = 0; i &lt; 1000000; i++) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a++;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;v++;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+}<br>
+<br>
+<span class="org-type">int</span> <span class="org-function-name">main</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"main() starts"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">thread</span> <span class="org-variable-name">t1</span>{f};<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">thread</span> <span class="org-variable-name">t2</span>{f};<br>
+&nbsp;&nbsp;&nbsp;&nbsp;t1.join();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;t2.join();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"main() completes: v="</span> &lt;&lt; v &lt;&lt;<span class="org-string">" a="</span>&lt;&lt;a&lt;&lt;<span class="org-constant">std</span>::endl;<br>
+}<br>
+<p></p>
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>zamień modyfikację <code>a</code> przez <code>++</code> na <code>+=</code>, a następnie na <code>fetch_add</code>.
+</li>
+<li>oznacz zmienne synchronizacyjne w algorytmie Petersona jako
+<code>std::atomic</code>. Czy algorytm działa poprawnie?
+</li>
+<li>Uruchom algorytm Petersona na jednym rdzeniu <code>taskset 0x1
+  ./peterson</code>. Dlaczego program działa tak wolno?
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4"><span class="section-number-2">4</span> std::atomic do nieblokujących struktur danych</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+std::atomic udostępnia serię metod <code>compare_exchange(T&amp; expected, T
+desired)</code>. Metody te atomowo: (1) porównują <code>*this</code> z <code>expected</code> i,
+jeśli są takie same, (2a) zamieniają <code>*this</code> na <code>desired</code>; a w
+przeciwnym wypadku (2b) zamieniają <code>expected</code> na <code>this*</code>. Porównanie w
+(1) opiera się na porównaniu bit po bicie reprezentacji obiektów
+<code>expected</code> i <code>this</code>.
+</p>
+
+<p>
+Taki mechanizm pozwala na zrealizowanie nieblokujących struktur
+danych. Standardowo przed modyfikacją struktury danych powinniśmy ją
+zablokować (np. muteksem). Muteksy są jednak dosyć kosztowne, dlatego,
+jeśli konflikt występuje dosyć rzadko, a semantyka rozwiązania
+konfliktu jest jednoznaczna, lepiej wykorzystać operację
+<code>compare_exchange</code> wykonywaną w pętli. 
+</p>
+
+<p>
+<code>compare_exchange</code> występuje w dwóch podstawowych wariantach: 
+</p>
+<ul class="org-ul">
+<li>słabym (<code>compare_exchange_weak</code>): zapis może nie nastąpić nawet gdy
+<code>*this</code> jest identyczne z expected
+</li>
+<li>mocnym (<code>compare_exchange_strong</code>): zapis zawsze nastąpi gdy <code>*this</code>
+  jest identyczne z expected. Wariant mocny jest bardziej kosztowny.
+</li>
+</ul>
+
+
+<p>
+Następujący kod (zaadopotowany z
+<a href="http://en.cppreference.com/w/cpp/atomic/atomic/compare_exchange">http://en.cppreference.com/w/cpp/atomic/atomic/compare_exchange</a>)
+implementuje stos. Kod wykorzystuje <code>std::atomic&lt;node&lt;T&gt;*&gt;</code>, czyli specjalizację
+typu atomic dla wskaźnika.
+</p>
+
+<p>
+lockfree-stack.cpp
+</p>
+<div class="org-src-container">
+
+<pre class="src src-cpp"><span class="org-keyword">template</span>&lt;<span class="org-keyword">typename</span> <span class="org-type">T</span>&gt;<br>
+<span class="org-keyword">struct</span> <span class="org-type">node</span><br>
+{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-type">T</span> <span class="org-variable-name">data</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-type">node</span>* <span class="org-variable-name">next</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-function-name">node</span>(<span class="org-keyword">const</span> <span class="org-type">T</span>&amp; <span class="org-variable-name">data</span>) : data(data), next(<span class="org-constant">nullptr</span>) {}<br>
+};<br>
+<br>
+<span class="org-keyword">template</span>&lt;<span class="org-keyword">typename</span> <span class="org-type">T</span>&gt;<br>
+<span class="org-keyword">class</span> <span class="org-type">stack</span><br>
+{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">atomic</span>&lt;<span class="org-type">node</span>&lt;<span class="org-type">T</span>&gt;*&gt; <span class="org-variable-name">head</span>;<br>
+ <span class="org-keyword">public</span>:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-type">void</span> <span class="org-function-name">push</span>(<span class="org-keyword">const</span> <span class="org-type">T</span>&amp; <span class="org-variable-name">data</span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-type">node</span>&lt;<span class="org-type">T</span>&gt;* <span class="org-variable-name">new_node</span> = <span class="org-keyword">new</span> node&lt;<span class="org-type">T</span>&gt;(data);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-comment-delimiter">// </span><span class="org-comment">thread-unsafe code:</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-comment-delimiter">// </span><span class="org-comment">new_node-&gt;next = head;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-comment-delimiter">// </span><span class="org-comment">head = new_node;</span><br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-comment-delimiter">// </span><span class="org-comment">put the current value of head into new_node-&gt;next</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;new_node-&gt;next = head.load();<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-comment-delimiter">// </span><span class="org-comment">now make new_node the new head, but if the head</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-comment-delimiter">// </span><span class="org-comment">is no longer what's stored in new_node-&gt;next</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-comment-delimiter">// </span><span class="org-comment">(some other thread must have inserted a node just now)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-comment-delimiter">// </span><span class="org-comment">then put that new head into new_node-&gt;next and try again</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">while</span>(<span class="org-negation-char">!</span>head.compare_exchange_weak(new_node-&gt;next, new_node))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;; <span class="org-comment-delimiter">// </span><span class="org-comment">the body of the loop is empty</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-type">node</span>&lt;<span class="org-type">T</span>&gt;* <span class="org-function-name">get_head</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">return</span> head;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+};<br>
+<p></p>
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>zamień kod na wariant niepoprawny i sprawdź różnice.
+</li>
+</ul>
+</div>
+</div>
+
+
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5"><span class="section-number-2">5</span> Zadanie: implementacja algorytmu Dekkera</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+Zaimplementuj algorytm Dekkera.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-6" class="outline-2">
+<h2 id="sec-6"><span class="section-number-2">6</span> Bibliografia</h2>
+<div class="outline-text-2" id="text-6">
+<ul class="org-ul">
+<li>You Don't Know Jack About Shared Variables or Memory Models,
+Hans-J. Boehm, Sarita V. Adve Communications of the ACM, Vol. 55
+No. 2, Pages 48-54, <a href="http://dx.doi.org/10.1145/2076450.2076465">http://dx.doi.org/10.1145/2076450.2076465</a>
+<a href="http://queue.acm.org/detail.cfm?id=2088916">http://queue.acm.org/detail.cfm?id=2088916</a>
+</li>
+
+<li>Scott Meyers, Effective Modern C++, O'Reilly 2015, Item 40
+</li>
+
+<li><a href="http://en.cppreference.com/w/cpp/language/memory_model">http://en.cppreference.com/w/cpp/language/memory_model</a>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="date">Data: 2017/12/04</p>
+<p class="author">Autor: Krzysztof Rządca</p>
+<p class="date">Created: 2017-12-04 Mon 11:44</p>
+<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 25.1.1 (<a href="http://orgmode.org/">Org</a> mode 8.2.10)</p>
+<p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+
+
+</body></html>

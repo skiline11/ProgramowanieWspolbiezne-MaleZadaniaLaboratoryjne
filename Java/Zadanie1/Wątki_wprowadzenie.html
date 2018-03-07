@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+  <title>Wątki - wprowadzenie.</title>
+  <meta name="generator" content="Amaya, see http://www.w3.org/Amaya/" />
+</head>
+
+<body>
+<h1>Wątki w javie </h1>
+
+<p>Pełen opis można znaleźć np. w: <a
+href="http://docs.oracle.com/javase/7/docs/api/java/lang/Thread.html">http://docs.oracle.com/javase/7/docs/api/java/lang/Thread.html</a></p>
+
+<p></p>
+
+<h2>Pliki z przykładami</h2>
+
+<p>Zaprezentowane tu programy przykładowe są niezwykle proste. Ich jedynym
+celem jest zilustrowanie opisywanych mechanizmów.</p>
+<ul>
+  <li><code>AJedenWatek.java</code> - bardzo prosty program jednowątkowy.
+    Warto zwrócić uwagę na postać opisu wątku. </li>
+  <li><code>ADwaWatki.java</code> - program tworzący dwa wątki: główny i
+    dodatkowy.</li>
+  <li><code>GlownyWatek.java</code> - dwa wątki wypisujące naprzemiennie
+    ciągi liczb całkowitych (użyto rozszerzenia klasy
+  <code>Thread).</code></li>
+  <li><code>GlownyWatekR.java</code> - wątek główny tworzy dwa wątki o
+    identycznej treści. Każdy z trzech wątków wypisuje ciąg liczb
+    całkowitych przy czym wątek główny czeka na zakończenie obu wątków
+    potomnych (użyto implementacji interfejsu <code>Runnable</code>). </li>
+  <li><code>TestClassA.java, TestClassB.java</code> - programy ilustrujące
+    różnicę pomiędzy wykonaniem tego samego kodu przez trzy różne wątki
+    a wykonaniem trzech egzemplarzy takiego samego kodu.</li>
+  <li><code>GetResultFromThread</code> - program ilustrujący mechanizm
+    odbierania wyników od wątków.</li>
+</ul>
+
+<p></p>
+
+<h2>Pojęcie wątku</h2>
+
+<p><strong>Proces</strong> to wykonujący się program wraz z dynamicznie
+przydzielanymi mu przez system operacyjny zasobami (np.: procesorem, pamięcią
+operacyjną, plikami, urządzeniami wejścia-wyjścia) oraz środowiskiem
+umożliwiającym wykonanie. Wielokrotne wykonanie tego samego programu oznacza
+tworzenie za każdym razem odrębnego procesu.</p>
+
+<p>Współczesne (wielozadaniowe) systemy operacyjne udostępniają mechanizm
+<strong>przełączania kontekstu</strong>, umożliwiając w ten sposób
+zachowanie bieżącego stanu procesu (czyli stanu konkretnego wykonania
+określonego programu), a następnie wznowienie (zwykle innego) procesu (czyli
+przywrócenie stanu wykonywania - zazwyczaj innego - programu). Tak więc
+systemy wielozadaniowe pozwalają na współbieżne wykonywanie wielu
+procesów, z których każdy ma swój kontekst i swoje zasoby.</p>
+
+<p><strong>Wątek</strong> to sekwencja działań, która może wykonywać się
+równolegle z innymi sekwencjami działań (wątkami) w kontekście tego samego
+procesu.</p>
+
+<p>Każdy proces ma co najmniej jeden wykonujący się wątek, natomiast w
+systemach wielowątkowych proces może wykonywać współbieżnie wiele
+wątków. Wszystkie one wykonują się w tej samej przestrzeni adresowej
+procesu. </p>
+
+<p>W systemach jednoprocesorowych współbieżność wykonywania się wątków
+realizowana jest przez mechanizm przydzielania czasu procesora poszczególnym
+wątkom. O dostępie wątków do procesora decyduje systemowy zarządca
+wątków: każdy wątek uzyskuje dostęp do procesora na krótki czas (kwant
+czasu), po upływie którego procesor przekazywany jest innemu wątkowi. </p>
+
+<p>Podstawowa różnica pomiędzy procesami i wątkami polega na tym, że
+różne wątki jednego procesu mają dostęp do zasobów (w tym przestrzeni
+adresowej) i kontekstu tego procesu. Oznacza to, że przekazywanie procesora
+innemu wątkowi w obrębie tego samego procesu może być wykonane szybciej
+niż przełączenie kontekstu pomiędzy różnymi procesami.</p>
+
+<p>Z punktu widzenia programisty dostęp wątków jednego procesu do zasobów i
+kontekstu tego procesu ma zarówno zalety jak i wady. Zaletą jest możliwość
+łatwego dostępu do wspólnych danych programu. Wadą - brak ochrony danych
+programu przed zmianami dokonywanymi współbieżnie przez różne wątki, co
+może prowadzić do niespójności tych danych. Aby tego uniknąć konieczne
+jest stosowanie specjalnych mechanizmów synchronizacji w dostępie wątków do
+tych danych.</p>
+
+<p></p>
+
+<h2>Tworzenie wątków</h2>
+
+<p>Jak wspomniano wyżej, każdy proces ma co najmniej jeden wykonujący się
+wątek. W programie w javie definiuje go ciąg instrukcji zapisanych w metodzie
+<code>main().</code> Przykład takiego programy zawarty jest w pliku
+<code>AJedenWatek.java.</code></p>
+
+<p>Aby stworzyć wątek, który ma się wykonywać współbieżnie z wątkiem
+głównym musimy:</p>
+
+<p>- zdefiniować kod, który ma być wykonywany w ramach tego wątku,</p>
+
+<p>- uruchomić wątek.</p>
+
+<p>Mamy dwie podstawowe możliwości zdefiniowania kodu, który ma być
+wykonywany w ramach wątku.</p>
+
+<p><strong>1. zdefiniowanie klasy dziedziczącej po klasie
+<code>java.lang.Thread</code>:</strong></p>
+
+<p></p>
+<pre><code>class MyThread extends Thread {</code>
+<code>  public void run() {</code>
+<code>    System.out.println("Witaj na labie z PW!");</code>
+<code>  }</code>
+<code>}</code></pre>
+
+<p></p>
+
+<p>Aby uruchomić wątek zaimplementowany w postaci klasy <code>MyThread</code>
+trzeba utworzyć instancję tej klasy i uruchomić dla niej metodę
+<code>start()</code>.</p>
+
+<p></p>
+<pre><code>public class TestClass {</code>
+<code>  public static void main(String[] args) {</code>
+     Thread newThread = new MyThread();
+<code>     newThread.start();</code>
+
+  <code>}</code>
+<code>}</code></pre>
+
+<p><strong>2. zdefiniowanie klasy implementującej interfejs
+<code>java.lang.Runnable</code>: </strong></p>
+
+<p>Ponieważ w javie nie jest dozwolone wielodziedziczenie, niekiedy
+wygodniejsza może być implementacja interfejsu. </p>
+
+<p></p>
+<pre>public class MyRun implements Runnable{
+@Override
+    public void run() {
+           System.out.println("Witaj na labie z PW!");            
+        }
+ }</pre>
+
+<p></p>
+
+<p>Tutaj uruchomienie jest nieco bardziej złożone.</p>
+
+<p></p>
+<pre>public static void main(String[] args) {
+     Runnable runner = new MyRun();
+     Thread newThread = new Thread(runner);
+     newThread.start();
+  }
+}</pre>
+
+<p>W obydwu przypadkach implementacja wątku sprowadza się do implementacji
+metody run().</p>
+
+<p>Przykłady ilustrujące oba mechanizmy znajdują się w plikach
+przykładowych <code>GlownyWatek.java</code> i <code>GlownyWatekR.java.</code></p>
+
+<h2>Wykonanie tego samego kodu czy wykonanie takiego samego kodu</h2>
+
+<p>Warto zwrócić uwagę na (chyba dość oczywisty) fakt, że każdorazowe
+użycie operatora <code>new</code>, np. w stosunku do klasy implementującej
+interfejs <code>runnable </code>powoduje powstanie nowego obiektu z nowymi
+kopiami pól. Jeśli więc chcemy aby różne wątki wykonywały ten sam (a nie
+tylko taki sam) kod, nie należy nadużywać operatora <code>new</code> (patrz
+przykłady <code>TestClassA.java, TestClassB.java</code>).</p>
+
+<p></p>
+
+<h2>Podstawowe właściwości</h2>
+
+<p>Nieco więcej o właściwościach wątków będzie powiedziane za tydzień.
+Tutaj wspominamy tylko niektóre podstawowe cechy.</p>
+
+<p>Szeregowanie wątków opiera się na statycznych priorytetach przypisanych
+każdemu z wątków.</p>
+
+<p>Wątki mogą mieć swoje nazwy, choć ich znaczenie praktyczne wydaje się
+niewielkie.</p>
+
+<p>W cyklu życia w systemie wątki mogą znajdować się w różnych
+stanach.</p>
+
+<h2>Koniec pracy wątku</h2>
+
+<p>Wątek kończy pracę po wyczerpaniu kodu odpowiedniej metody definiującej
+jego treść (metoda <code>run</code>). Może też zostać przerwany z
+zewnątrz. Niezależnie od tego, w wielu zastosowaniach istotna jest
+możliwość ustalenia, czy wątek zakończył działanie (wykonał
+przydzielone mu zadanie). Istnieją dwa podstawowe sposoby stwierdzenia, czy
+wątek jeszcze działa. Pierwszy, to odpytywanie: użycie metody
+<code>isAlive()</code>. Drugi to nieaktywne czekanie na zakończenie wątku - o
+tym za tydzień.</p>
+
+<p></p>
+
+<h2>Wybrane użyteczne metody</h2>
+
+<p>Klasa <code>Thread</code> dysponuje wielu użytecznymi metodami. Tutaj
+wymienimy tylko niektóre z nich. O pozostałych - za tydzień.</p>
+<ul>
+  <li><code>boolean isAlive()</code> — sprawdzenie, czy wątek nadal działa
+    (zwraca true jeśli wątek został uruchomiony, ale wykonywanie metody
+    run() nie dobiegło końca), </li>
+  <li><code>static void sleep(long milis) - </code>usypianie wątku na
+    wskazaną liczbę milisekund,</li>
+  <li><code>static void sleep(long milis, int nanos) - </code>usypianie wątku
+    na wskazaną liczbę milisekund i nanosekund.</li>
+</ul>
+
+<p></p>
+
+<h2>Odbieranie wyników od wątków</h2>
+
+<p>W wielu praktycznych zastosowaniach wątki wykorzystywane są do wykonywania
+konkretnych zadań. W takim przypadku często konieczne jest przekazywanie
+wątkom pewnych informacji, np. wskazanie, których danych powinny użyć do
+obliczeń, oraz odbieranie wyników.</p>
+
+<p>W programie <code>GetResultFromThread.java </code>pokazany jest bardzo
+prosty przykład odbierania wyników pracy poszczególnych wątków. W każdym
+tego typu przypadku konieczne jest zagwarantowanie, że wyniki odebrane
+zostaną dopiero wtedy, kiedy na pewno zostały już wygenerowane - w
+przykładzie użyta została metoda aktywnego odpytywania. Inny sposób
+zostanie pokazany za tydzień.</p>
+
+<h2>Wątki a kolekcje</h2>
+
+<p>Większość tradycyjnych kolekcji nie gwarantuje poprawnego działania
+programów korzystających z wątków. Nie spełniają one warunku
+'thread-safe' . W związku z tym w przykładzie</p>
+
+<p><code>GetResultFromThread.java</code> użyta została kolekcja
+<code>Collections.synchronizedList(new ArrayList&lt;String&gt;()),</code>
+która zapewnia poprawną współpracę z mechanizmem wątków. O mechanizmie
+synchronizacji będzie mowa na jednym z następnych laboratoriów.</p>
+
+<h2>Zadanie do wykonania</h2>
+
+<p>Należy zaimplementować klasę reprezentującą wektor n-wymiarowy o
+składowych całkowitych. </p>
+
+<p>Klasa powinna zawierać:</p>
+<ul>
+  <li>konstruktory: 
+    <ol>
+      <li><code>wektor (int N)</code> - jednoargumentowy, tworzący wektor
+        zerowy wymiaru N,</li>
+      <li><code>wektor(int N, int [] skladowe)</code> - dwuargumentowy,
+        tworzący wektor wymiaru <code>n</code>, o składowych
+        <code>skladowe,</code> przy czym można założyć, że wymiar tablicy
+        zgadza się z wartością N. </li>
+    </ol>
+  </li>
+  <li>metody: 
+    <ol>
+      <li><code>wektor dodaj(wektor w)</code> - dającą nowy wektor będący
+        sumą wektorową wektora bieżącego i argumentu metody,</li>
+      <li><code>public static void main(String[] args) - </code>ilustrującą
+        działanie implementacji.</li>
+    </ol>
+    <ol>
+    </ol>
+  </li>
+</ul>
+
+<p>Realizacja obliczeń sumy powinna się odbywać w miarę możliwości
+wielowątkowo. </p>
+
+<p>Wątki należy implementować jako rozszerzenie klasy <code>Thread.</code>
+</p>
+
+<p>Do ewentualnego sprawdzania, czy wątki zakończyły działanie należy
+zastosować odpytywanie.</p>
+<hr />
+
+<p>(K.Sz.)</p>
+</body>
+</html>

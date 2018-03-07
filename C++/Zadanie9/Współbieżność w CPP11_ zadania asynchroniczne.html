@@ -1,0 +1,442 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!-- saved from url=(0070)https://www.mimuw.edu.pl/~janowska/PW-LAB/09-cpp-zadania/cpp-lab3.html -->
+<html xmlns="http://www.w3.org/1999/xhtml" lang="pl" xml:lang="pl"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Współbieżność w CPP11: zadania asynchroniczne</title>
+<!-- 2017-11-27 Mon 14:54 -->
+
+<meta name="generator" content="Org-mode">
+<meta name="author" content="Krzysztof Rządca">
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { color: green; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: visible;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  pre.src-sh:before    { content: 'sh'; }
+  pre.src-bash:before  { content: 'sh'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-R:before     { content: 'R'; }
+  pre.src-perl:before  { content: 'Perl'; }
+  pre.src-java:before  { content: 'Java'; }
+  pre.src-sql:before   { content: 'SQL'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.right  { text-align: center;  }
+  th.left   { text-align: center;   }
+  th.center { text-align: center; }
+  td.right  { text-align: right;  }
+  td.left   { text-align: left;   }
+  td.center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara:nth-child(2) { display: inline; }
+  .footpara { display: block; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  /*]]>*/-->
+</style>
+<link href="./Współbieżność w CPP11_ zadania asynchroniczne_files/cpp-theme.css" rel="stylesheet">
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2013 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">Współbieżność w CPP11: zadania asynchroniczne</h1>
+<div id="table-of-contents">
+<h2>Spis treści</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/09-cpp-zadania/cpp-lab3.html#sec-1">1. Tworzenie zadań</a></li>
+<li><a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/09-cpp-zadania/cpp-lab3.html#sec-2">2. Wiązanie zadań z wątkami</a></li>
+<li><a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/09-cpp-zadania/cpp-lab3.html#sec-3">3. Sposób uruchamiania zadań (launch policy)</a></li>
+<li><a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/09-cpp-zadania/cpp-lab3.html#sec-4">4. Zadanie: parallel merge sort</a></li>
+<li><a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/09-cpp-zadania/cpp-lab3.html#sec-5">5. Bibliografia</a></li>
+</ul>
+</div>
+</div>
+<p>
+Programowanie zadaniowe (programowanie współbieżne wykorzystujące
+zadania, tasks) to inne, bardziej funkcyjne, podejście do
+współbieżności. W klasycznym programowaniu wielowątkowym pisząc kod
+wątku specyfikujemy nie tylko co program ma zrobić, ale również jak
+— w oddzielnym wątku.
+</p>
+
+<p>
+W programowaniu zadaniowym określamy co ma być zrobione (<b>zadanie</b>) oraz
+kiedy potrzebny będzie wynik (punkt synchronizacji). Przydziałem zadań
+do wątków zajmuje się planista (scheduler) biblioteki udostępniającej
+programowanie zadaniowe.
+</p>
+
+<p>
+Efektywne programowanie wielowątkowe jest trudne. Optymalna ilość
+stworzonych wątków zależy zarówno od liczby rdzeni/procesorów, ale też
+od charakteru pracy wątków: wątków intensywnych obliczeniowo powinno
+być tyle samo, ile dostępnych procesorów (rdzeni); ale wątków często
+blokujących się na operacjach wejścia wyjścia powinno być znacznie
+więcej. Jeśli wątków jest mniej niż "jednostek pracy", musimy
+zaimplementować równoważenie obciążenia między wątkami.
+</p>
+
+<p>
+Programowanie zadaniowe zrzuca odpowiedzialność za stworzenie
+odpowiedniej liczby wątków na bibliotekę. Biblioteka powinna stworzyć
+pulę wątków i dynamicznie przydzielać do nich aktywne zadania. 
+</p>
+
+<p>
+Niestety, programowanie zadaniowe w CPP11
+<a href="https://bartoszmilewski.com/2011/10/10/async-tasks-in-c11-not-quite-there-yet/">nie
+do końca spełnia te założenia</a> (w szczególności: cpp nie umie
+przełączyć wątku na inne zadanie, gdy wykonujące się zadanie
+zablokowało się na muteksie).  Mimo tego w niektórych zastosowaniach
+programowanie zadaniowe może być wygodniejsze od zwykłych wątków.
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> Tworzenie zadań</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+Nowe zadania tworzymy wywołując funkcję <code>std::async(funkcja, argumenty)</code>, która
+zwraca przyszłość <code>std::future</code> reprezentującą rezultat zadania.
+</p>
+
+<p>
+parallel-sum.cpp
+</p>
+<div class="org-src-container">
+
+<pre class="src src-cpp"><span class="org-comment-delimiter">// </span><span class="org-comment">code adopted from http://en.cppreference.com/w/cpp/thread/async</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;iostream&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;vector&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;algorithm&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;numeric&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;future&gt;</span><br>
+<br>
+<span class="org-keyword">template</span> &lt;<span class="org-keyword">typename</span> <span class="org-type">RAIter</span>&gt;<br>
+<span class="org-type">int</span> <span class="org-function-name">parallel_sum</span>(<span class="org-type">RAIter</span> <span class="org-variable-name">beg</span>, <span class="org-type">RAIter</span> <span class="org-variable-name">end</span>)<br>
+{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">auto</span> <span class="org-variable-name">len</span> = end - beg;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">if</span> (len &lt; 1000) <span class="org-comment-delimiter">// </span><span class="org-comment">sum short vectors sequentially</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">return</span> <span class="org-constant">std</span>::accumulate(beg, end, 0);<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-type">RAIter</span> <span class="org-variable-name">mid</span> = beg + len/2;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">future</span>&lt;<span class="org-type">int</span>&gt; <span class="org-variable-name">handle</span> = <span class="org-constant">std</span>::async(<span class="org-type">parallel_sum</span>&lt;<span class="org-type">RAIter</span>&gt;, mid, end);&nbsp;&nbsp;<span class="org-comment-delimiter">// </span><span class="org-comment">a new task: sum the second half</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-type">int</span> <span class="org-variable-name">sum</span> = parallel_sum(beg, mid); <span class="org-comment-delimiter">// </span><span class="org-comment">sum the first half in this task</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">return</span> sum + handle.get(); <span class="org-comment-delimiter">// </span><span class="org-comment">synchronization</span><br>
+}<br>
+<br>
+<span class="org-type">int</span> <span class="org-function-name">main</span>()<br>
+{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">vector</span>&lt;<span class="org-type">int</span>&gt; <span class="org-variable-name">v</span>(1<span class="org-string">'000'</span>000, 1);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"The sum is "</span> &lt;&lt; parallel_sum(v.begin(), v.end()) &lt;&lt; <span class="org-string">'\n'</span>;<br>
+}<br>
+<p></p>
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>Zwiększ długość wektora do 10 milionów elementów. Oszacuj, ile zadań
+będzie stworzonych. Czy program działa efektywnie? (porada:
+uruchamiaj program przez <code>time parallel-sum</code> i sprawdzaj różnicę
+<code>real</code> oraz <code>user</code>).
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> Wiązanie zadań z wątkami</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+Powtórzymy (odrobinę zmodyfikowany)
+<a href="https://bartoszmilewski.com/2011/10/10/async-tasks-in-c11-not-quite-there-yet/">eksperyment</a> Bartosza Milewskiego. Tworzymy wiele zadań. Każdy z nich wyświetla
+identyfikator wykonującego go wątku, śpi sekundę, a następnie
+drukuje identyfikator wątku:
+</p>
+
+<p>
+tasks-tids.cpp
+</p>
+<div class="org-src-container">
+
+<pre class="src src-cpp"><span class="org-comment-delimiter">// </span><span class="org-comment">code adopted from https://bartoszmilewski.com/2011/10/10/async-tasks-in-c11-not-quite-there-yet/</span><br>
+<br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;thread&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;future&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;vector&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;iostream&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;algorithm&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">"../cpp-lab2/log.h"</span><br>
+<br>
+<span class="org-type">int</span> <span class="org-function-name">main</span>() <br>
+{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"Main thread id: "</span> &lt;&lt; <span class="org-constant">std</span>::<span class="org-constant">this_thread</span>::get_id() &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">vector</span>&lt;<span class="org-constant">std</span>::<span class="org-type">future</span>&lt;<span class="org-type">void</span>&gt;&gt; <span class="org-variable-name">futures</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">for</span> (<span class="org-type">int</span> <span class="org-variable-name">i</span> = 0; i &lt; 20; ++i)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">auto</span> <span class="org-variable-name">fut</span> = <span class="org-constant">std</span>::async([i]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log(<span class="org-string">"start task "</span>, i, <span class="org-string">" "</span>, <span class="org-constant">std</span>::<span class="org-constant">this_thread</span>::get_id()); <span class="org-comment-delimiter">// </span><span class="org-comment">who am I?</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-constant">this_thread</span>::sleep_for(<span class="org-constant">std</span>::<span class="org-constant">chrono</span>::seconds(1));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log(<span class="org-string">"finish task "</span>, i, <span class="org-string">" "</span>, <span class="org-constant">std</span>::<span class="org-constant">this_thread</span>::get_id()); <span class="org-comment-delimiter">// </span><span class="org-comment">am I the same as before?</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;futures.push_back(<span class="org-constant">std</span>::move(fut));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::for_each(futures.begin(), futures.end(), [](<span class="org-constant">std</span>::<span class="org-type">future</span>&lt;<span class="org-type">void</span>&gt; &amp; <span class="org-variable-name">fut</span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fut.wait();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;});<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+}<br>
+<p></p>
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>Czy biblioteka przełącza któreś z zadań między różnymi wątkami?
+</li>
+<li>Czy zadania wykonują się równocześnie, czy sekwencyjnie?
+</li>
+<li>Zwiększ liczbę tworzonych zadań. Od jakiej liczby zadań zadania
+zaczynają być wykonywane sekwencyjnie? Od jakiej liczby zadań
+biblioteka przestaje sobie dawać z nimi radę?
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> Sposób uruchamiania zadań (launch policy)</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+Tworząc zadanie możemy określić sposób uruchomienia (pierwszy argument
+<code>std::async</code>):
+</p>
+<ul class="org-ul">
+<li><code>std::launch::async</code> wymusza uruchomienie w oddzielnym wątku.
+</li>
+<li><code>std::launch::deferred</code> wymusza uruchomienie w bieżącym
+wątku. Uruchomienie zadania jest odroczone do wywołania <code>get</code> lub
+<code>wait</code> na przyszłości.
+</li>
+<li>domyślne: pozwól bibliotece zdecydować, czy uruchomić zadanie
+asynchronicznie, czy w bieżącym wątku.
+</li>
+</ul>
+
+<p>
+Pewne połączenia sposobów uruchamiania i konstrukcji programowania
+wielowątkowego mogą być ryzykowne (więcej informacji: S. Meyers, bibliografia):
+</p>
+<ul class="org-ul">
+<li>domyślny sposób uruchomienia i zmienne <code>thread_local</code> (zmienną
+którego wątku zmodyfikuję?)
+</li>
+<li>domyślny sposób uruchomienia i pół-aktywne oczekiwanie na rezultaty
+(<code>future.wait_for(std::chrono::seconds(1))</code>): pętla może nigdy się nie skończyć.
+</li>
+</ul>
+
+
+<p>
+Zadania:
+</p>
+<ul class="org-ul">
+<li>Przetestuj wszystkie trzy sposoby uruchamiania zadań w kodzie
+<code>tasks-tids.cpp</code>.
+</li>
+<li>W kodzie <code>tasks-tids.cpp</code> wprowadź pół-aktywne oczekiwanie na
+rezultaty (<code>fut.wait_for</code>) i ponownie przetestuj sposoby
+uruchomienia zadań:
+</li>
+</ul>
+<div class="org-src-container">
+
+<pre class="src src-cpp"><span class="org-constant">std</span>::for_each(futures.begin(), futures.end(), [](<span class="org-constant">std</span>::<span class="org-type">future</span>&lt;<span class="org-type">void</span>&gt; &amp; <span class="org-variable-name">fut</span>)<br>
+{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">future_status</span> <span class="org-variable-name">status</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">do</span> {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status = fut.wait_for(<span class="org-constant">std</span>::<span class="org-constant">chrono</span>::seconds(1));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">if</span> (status == <span class="org-constant">std</span>::<span class="org-constant">future_status</span>::deferred) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log(<span class="org-string">"deferred"</span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} <span class="org-keyword">else</span> <span class="org-keyword">if</span> (status == <span class="org-constant">std</span>::<span class="org-constant">future_status</span>::timeout) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log(<span class="org-string">"timeout"</span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} <span class="org-keyword">else</span> <span class="org-keyword">if</span> (status == <span class="org-constant">std</span>::<span class="org-constant">future_status</span>::ready) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log(<span class="org-string">"ready"</span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;} <span class="org-keyword">while</span> (status != <span class="org-constant">std</span>::<span class="org-constant">future_status</span>::ready); <br>
+});<br>
+<p></p>
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4"><span class="section-number-2">4</span> Zadanie: parallel merge sort</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+Zaimplementuj równoległy algorytm sortowania przez scalanie
+wykorzystując zadania <code>std::async</code>.
+</p>
+
+<p>
+Sortuj wektor liczb całkowitych. Operuj na indeksach reprezentowanych
+przez liczby całkowite (chyba, że nie masz wątpliwości, jak używać
+iteratorów w C++).
+</p>
+
+<p>
+W wersji podstawowej zrównoleglij krok sortowania, a scalanie pozostaw
+sekwencyjne.
+</p>
+
+<p>
+W wersji zaawansowanej zaimplementuj równoległe scalanie. Scalając
+wektor <code>T[p1,r1]</code> z <code>T[p2,r2]</code> na wektor <code>A[p3,r3]</code> wykonaj następujące kroki:
+</p>
+<ul class="org-ul">
+<li>niech <code>x</code>: mediana (element środkowy) z <code>T[p1,r1]</code>; niech <code>q1</code> - indeks <code>x</code>;
+</li>
+<li>znajdź <code>q2</code>: indeks pomiędzy <code>p2</code> a <code>r2</code> taki, że wszystkie elementy
+<code>T[q2,r2]</code> są większe lub równe <code>x</code>;
+</li>
+<li>przenieś <code>x</code> na pozycję <code>q3 = p3 + (q1-p1) + (q2-p2)</code>;
+</li>
+<li>scal rekursywnie <code>T[p1,q1]</code> z <code>T[p2,q2]</code> na <code>A[p3,q3]</code>; oraz <code>T[q1+1,r1]</code> z <code>T[q2+1, r2]</code> na <code>A[q3+1, r3]</code>
+</li>
+</ul>
+
+<p>
+Uwaga: scalanie musi mieć długość scieżki krytycznej poniżej O(n). Upewnij się, że:
+</p>
+<ul class="org-ul">
+<li><code>(r1 - p1) &gt;= (r2 - p2)</code>  (w przeciwnym wypadku zamień indeksy);
+</li>
+<li>po każdym kroku scalania <span class="underline">nie</span> przepisujesz <code>A</code> na <code>T</code>.
+</li>
+</ul>
+</div>
+</div>
+
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5"><span class="section-number-2">5</span> Bibliografia</h2>
+<div class="outline-text-2" id="text-5">
+<ul class="org-ul">
+<li>Scott Meyers, Effective Modern C++, O'Reilly 2015, Items 35, 36
+</li>
+<li><a href="https://bartoszmilewski.com/2011/10/10/async-tasks-in-c11-not-quite-there-yet/">https://bartoszmilewski.com/2011/10/10/async-tasks-in-c11-not-quite-there-yet/</a>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="date">Data: 2017/11/27</p>
+<p class="author">Autor: Krzysztof Rządca</p>
+<p class="date">Created: 2017-11-27 Mon 14:54</p>
+<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 25.1.1 (<a href="http://orgmode.org/">Org</a> mode 8.2.10)</p>
+<p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+
+
+</body></html>

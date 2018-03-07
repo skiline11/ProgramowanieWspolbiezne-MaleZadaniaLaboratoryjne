@@ -1,0 +1,318 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0097)https://www.mimuw.edu.pl/~janowska/PW-LAB/02-watki-ciag-dalszy/W%c4%85tki_ci%c4%85g%20dalszy.html -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <title>Wątki_ciąg dalszy</title>
+  <meta name="generator" content="Amaya, see http://www.w3.org/Amaya/">
+</head>
+
+<body>
+<h1>Wątki - ciąg dalszy</h1>
+
+<p>Pełen opis można znaleźć np. w: <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Thread.html">http://docs.oracle.com/javase/8/docs/api/java/lang/Thread.html</a></p>
+
+<p>Na poprzednich zajęciach poznaliśmy podstawowe właściwości wątków.
+Dzisiaj nieco więcej szczegółów.</p>
+
+<h2>Pliki z przykładami</h2>
+<ul>
+  <li><code>ThreadPriority.java</code> - program ilustrujący wpływ
+    priorytetów wątków na działanie programu. </li>
+  <li><code>CrunchifyDaemonThread.java</code> - pochodzący ze strony
+    <code>crunchify.com</code> przykład ilustrujący zachowanie się
+    wątków-demonów.</li>
+  <li><code>VolatileTest.java</code> - pochodzący ze strony
+    <code>DZone.com</code> przykład ilustrujący działanie atrybutu
+  volatile.</li>
+  <li><code>TestThread.java - </code>prosty program wykorzystujący
+    metodę<code>join().</code></li>
+  <li><code>JoinExample.java</code> - przykład pokazujący wykorzystanie
+    metody <code>join()</code> do sterowania kolejnością wykonania
+  wątków.</li>
+</ul>
+
+<h2>Priorytety wątków</h2>
+
+<p>Szeregowanie wątków opiera się na statycznych priorytetach przypisanych
+każdemu z wątków przez maszynę wirtualną Javy. Nie oznacza to jednak, że
+w każdym momencie procesor musi zostać przydzielony wątkowi o najwyższym
+priorytecie. W klasie <code>Thread </code>zdefiniowane są stałe określające
+zakres priorytetów oraz priorytet domyślny:</p>
+
+<p>/* The minimum priority that a thread can have. */</p>
+
+<p><code>public final static int MIN_PRIORITY = 1;</code></p>
+
+<p></p>
+
+<p>/* The default priority that is assigned to a thread. */</p>
+
+<p><code>public final static int NORM_PRIORITY = 5;</code></p>
+
+<p></p>
+
+<p>/* The maximum priority that a thread can have. */</p>
+
+<p><code>public final static int MAX_PRIORITY = 10;</code></p>
+
+<p></p>
+
+<p>Dostępne są też finalne metody pozwalające na uzyskanie informacji o
+aktualnym priorytecie oraz na zmianę priorytetu wątku:</p>
+
+<p><code>public final int getPriority()</code></p>
+
+<p><code>public final void setPriority(int newPriority)</code></p>
+
+<p></p>
+
+<p><strong>Uwaga 1</strong>: Priorytet domyślny może być inny w przypadku
+grup wątków.</p>
+
+<p><strong>Uwaga 2</strong>: Należy pamiętać, że priorytet wątku jest
+tylko sugestią dla maszyny wirtualnej, która nie zawsze musi z niej
+skorzystać. Ponadto ich działanie może być wyraźnie uzależnione od
+konkretnej implementacji maszyny.</p>
+
+<p><strong>Uwaga 3</strong>: Niektóre źródła zalecają wręcz unikanie
+używania priorytetów ponieważ zwiększa to zależność aplikacji od
+konkretnej platformy oraz może powodować problemy z żywotnością.</p>
+
+<p>Program przykładowy <code>ThreadPriority</code> ilustruje mechanizm
+priorytetów. Warto sprawdzić, czy i jak zmieni się zachowanie wątków po
+odwróceniu priorytetów wątków - odpowiednie miejsce w źródłach jest
+zaznaczone komentarzem.</p>
+
+<h2>Nazwy wątków</h2>
+
+<p>Wątki mogą mieć swoje nazwy. Ich znaczenie praktyczne nie wydaje się
+zbyt duże, ale mogą być pożyteczne np. w przypadku logowania działania
+wątków - śledzenie logów z intuicyjnymi nazwami wątków jest dla
+człowieka łatwiejsze . </p>
+
+<p>Domyślnie wątek główny nazywa się <code>main</code> a pozostałe wątki
+mają nazwy typu: <code>thread-i</code>, gdzie i jest numerem wątku. Do
+manipulowania nazwami dostępne są metody: </p>
+
+<p></p>
+
+<p><code>String getName()</code> - zwracająca nazwę bieżącego wątku
+oraz</p>
+
+<p><code>void setName(String name)</code> - zmieniająca nazwę na identyczną
+z argumentem.</p>
+
+<p></p>
+
+<p>Możliwe jest też nadawanie wątkom nazw już w momencie ich tworzenia.
+Klasa Thread dysponuje kilkoma różnymi konstruktorami (pominięto te
+dotyczące grup wątków):</p>
+
+<p><code>Thread()</code> - tworzy nowy obiekt klasy Thread,</p>
+
+<p><code>Thread(Runnable target)</code> - jak wyżej,</p>
+
+<p><code>Thread(Runnable target, String name)</code> - tworzy nowy obiekt klasy
+Thread i nadaje mu nazwę,</p>
+
+<p><code>Thread(String name)</code> - jak wyżej.</p>
+
+<h2>Demony</h2>
+
+<p>Wątki, których przeznaczeniem jest wykonywanie swoistych prac systemowych
+lub pomocniczych w tle nazywane są demonami. </p>
+
+<p>Zasadnicza różnicą pomiędzy zwykłymi wątkami i wątkami-demonami jest
+taka, że tak długo, jak działa jakikolwiek zwykły wątek programu, program
+nie może skończyć działania. Natomiast wątki-demony automatycznie kończą
+działanie wraz z zakończeniem działania wszystkich zwykłych wątków. </p>
+
+<p>Status bycia demonem jest dziedziczony w chwili tworzenia nowego wątku.</p>
+
+<p>Metoda: </p>
+
+<p><code>void setDaemon(boolean on)</code>, </p>
+
+<p>która musi być wywołana przed uruchomieniem wątku, oznacza wątek jako
+demona.</p>
+
+<p>Metoda:</p>
+
+<p><code>boolean isDaemon()</code> </p>
+
+<p>sprawdza, czy wątek jest demonem.</p>
+
+<p>Program przykładowy <code>CrunchifyDaemonThread</code> pokazuje różnicę
+pomiędzy wątkami-demonami a wątkami zwykłymi. Zdecydowanie warto
+przeanalizować, uruchomić zmieniając wartość argumentu metody
+<code>setDaemon</code> i zrozumieć jego działanie.</p>
+
+<p></p>
+
+<h2>Zmienne z kwalifikatorem <code>volatile</code></h2>
+
+<p>W pewnych przypadkach kompilator może podjąć decyzję, aby aktualna
+wartość zmiennej przez pewien czas była przechowywana tylko w rejestrze, bez
+modyfikacji zawartości pamięci. Może również zdecydować o zmianie
+kolejności wykonania pewnych operacji na zmiennych. Takie decyzje nie mają
+wpływu na wynik programu sekwencyjnego, ale mogą zmienić wynik programu, w
+którym ze zmiennej współdzielonej korzystają wątki wykonujące się
+współbieżnie.</p>
+
+<p>Zadeklarowanie zmiennej jako <code>volatile</code> informuje kompilator, że
+wątki odczytujące wartość takiej zmiennej zawsze powinny widzieć jej
+aktualną wartość, i że powinna być zachowana kolejność operacji na tej
+zmiennej wynikająca z kodu programu.</p>
+
+<p>Ponadto model pamięci języka Java gwarantuje atomowość operacji odczytu
+i zapisu zmiennych, ale tylko dla typów o rozmiarze do 32-bitów włącznie. W
+przypadku typów 64-bitowych, czyli takich jak <code>double</code> lub
+<code>long</code> odczyt i zapis zmiennej może zostać podzielony na dwie
+operacje 32-bitowe, co może wpłynąć na wynik programu współbieżnego.
+Zastosowanie modyfikatora <code>volatile</code> w deklaracji zmiennej
+gwarantuje, że do tego nie dojdzie.</p>
+
+<p>W trakcie tworzenia obiektów, które będą współdzielone przez różne
+wątki należy zwracać baczną uwagę na to, aby referencje do nich nie
+zostały udostępnione przedwcześnie, zanim obiekty zostaną w pełni
+skonstruowane.</p>
+
+<p>Program <code>VolatileTest</code> ilustruje zalety kwalifikatora
+<code>volatile. </code>Bez tego atrybutu jego działanie nie jest zgodne z
+oczekiwaniami - warto to sprawdzić dodając/usuwając ten atrybut. </p>
+
+<h2>Stany wątków</h2>
+
+<p>W trakcie swego życia w systemie wątki, podobnie jak procesy, mogą
+znajdować się w różnych stanach.</p>
+
+<p><strong>New</strong> - utworzony za pomocą operatora <code>new</code> (stan
+przed wywołaniem metody <code>start()</code>). Nie alokuje zasobów.</p>
+
+<p><strong>Runnable</strong> - stan po wywołaniu metody
+<code>start()</code>oznaczający gotowość do wykonania. W każdym momencie
+wątek może zostać uaktywniony.</p>
+
+<p><strong>Running</strong> - wątek jest wykonywany, otrzymał czas
+procesora.</p>
+
+<p><strong>Not Runnable</strong> - w tym stanie wątek nie może zostać
+uruchomiony: albo oczekuje na wykonanie jakiejś operacji, np.:
+wejścia/wyjścia albo został przeniesiony w ten stan za pomocą jednej z
+metod: <code>suspend()</code>, <code>sleep()</code> lub <code>wait()</code>.
+Może zostać przeniesiony do stanu <strong>runnable</strong> w momencie
+zakończenia wstrzymującej go operacji wejścia/wyjścia, albo po wywołaniu
+odpowiedniej metody, np.: <code>notify()</code> lub
+<code>notifyAll()</code>.</p>
+
+<p><strong>Dead</strong> - wątek zakończony albo wskutek wykonania treści
+metody run() albo wskutek wywołania stop().</p>
+
+<p></p>
+
+<h2>Czekanie na zakończenie wątków</h2>
+
+<p>W większości praktycznych zastosowań wątek główny powinien kończyć
+się jako ostatni, po zakończeniu wszystkich wątków uruchomionych w trakcie
+jego wykonywania.</p>
+
+<p>Oczywiście do sprawdzania, czy wątki nadal działają można używać
+metody <code>isAlive(), </code> ale wymaga to aktywnego odpytywania.</p>
+
+<p>Innym sposobem jest użycie metody <code>join()</code>. Wywołana w wątku
+macierzystym, powoduje czekanie na zakończenie wątku potomnego, na rzecz
+którego została wywołana. Oznacza to konieczność jawnego wskazania wątku,
+na którego zakończenie czekamy.</p>
+
+<p><code>public final void join() -</code> powoduje czekanie na zakończenie
+(śmierć) wątku.</p>
+
+<p>Możliwe są również dwie inne wersje metody <code>join()</code>.</p>
+
+<p><code>public final void join(long millis)</code> - powoduje czekanie przez
+wskazany w argumencie okres czasu,</p>
+
+<p><code>public final void join(long millis, int nanos)</code> - powoduje
+czekanie przez okres czasu będący sumą argumentów.</p>
+
+<p>Przykłady pokazujące wykorzystanie metody <code>join()</code> to
+<code>TestThread.java</code> oraz <code>JoinExample.java.</code></p>
+
+<p></p>
+
+<h2>Inne użyteczne metody</h2>
+<ul>
+  <li><code>static int enumerate(Thread threadArray[])</code> — zwraca
+    obiekty reprezentujące wszystkie wątki procesu,<code></code></li>
+  <li><code>static int activeCount()</code> — zwraca liczbę aktywnych
+    wątków proces.</li>
+  <li><code>static Thread currentThread()</code>— zwraca obiekt
+    reprezentujący aktualnie wykonywany wątek.<code></code></li>
+</ul>
+
+<p>Na uwagę zasługuje zwłaszcza metoda <code>currentThread()</code>. Jej
+użycie jest niezbędne w wielu przypadkach. Instrukcja:</p>
+
+<p><code>System.out.println(" Główny wątek: " +
+Thread.currentThread().getName() + " POCZĄTEK priorytet: " +
+Thread.currentThread().getPriority());</code></p>
+
+<p>umieszczona w treści metody <code>main</code> wypisuje informację o nazwie
+i priorytecie wątku głównego, natomiast aby uzyskać dostęp do atrybutów
+wątku definiowanego przez implementację interfejsu <code>Runnable</code>
+analogiczną instrukcję należy umieścić w treści definicji metody
+<code>run()</code>.</p>
+
+<p></p>
+
+<h2>Zadanie do wykonania</h2>
+
+<p>Należy zmodyfikować i nieco rozszerzyć rozwiązanie zadania z poprzednich
+zajęć, czyli zaimplementować klasę reprezentującą wektor n-wymiarowy o
+składowych całkowitych. </p>
+
+<p>Jak poprzednio, klasa powinna zawierać:</p>
+<ul>
+  <li>konstruktory: 
+    <ol>
+      <li><code>Wektor(int N)</code> - jednoargumentowy, tworzący wektor
+        zerowy wymiaru N,</li>
+      <li><code>Wektor(int N, int [] skladowe)</code> - dwuargumentowy,
+        tworzący wektor wymiaru <code>n</code>, o składowych
+        <code>skladowe,</code> przy czym można założyć, że wymiar tablicy
+        zgadza się z wartością N. </li>
+    </ol>
+  </li>
+  <li>metody: 
+    <ol>
+      <li><code>Wektor dodaj(Wektor w)</code> - dającą nowy wektor będący
+        sumą wektorową wektora bieżącego i argumentu metody,</li>
+      <li><code>public static void main(String[] args) - </code>ilustrującą
+        działanie implementacji.</li>
+    </ol>
+  </li>
+</ul>
+
+<p>A ponadto:</p>
+<ul>
+  <li>metodę: 
+    <ol>
+      <li><code>int razy(Wektor w)</code> - zwracającą iloczyn skalarny
+        wektora bieżącego i wektora będącego argumentem metody.</li>
+    </ol>
+  </li>
+</ul>
+
+<p>Realizacja obliczeń sumy i iloczynu powinna się odbywać w miarę
+możliwości wielowątkowo. </p>
+
+<p>Wątki należy implementować jako implementację interfejsu
+<code>Runnable.</code> </p>
+
+<p>Do ewentualnego sprawdzania, czy wątki zakończyły działanie należy
+zastosować <strong>nieaktywne</strong> czekanie.</p>
+
+<p></p>
+
+
+</body></html>

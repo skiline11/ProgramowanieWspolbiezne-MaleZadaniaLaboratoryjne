@@ -1,0 +1,17 @@
+Program pobiera :
+- słowo, którego wystąpienia będziemy liczyć
+- ilość plików w których będziemy liczyć te wystąpienia
+- nazwy tych plików
+
+Przykładowy input :
+
+samochód
+2
+pliki/makbet.txt
+pliki/komedia-omylek.txt
+pliki/sen-nocy-letniej.txt
+
+
+Program wypisuje liczbę wystąpień tego słowa
+
+UWAGA - Program automatycznie wyszukuje pliki w odniesieniu do adresu z jakiego został uruchomiony

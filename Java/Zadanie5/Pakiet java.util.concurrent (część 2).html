@@ -1,0 +1,109 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0076)https://www.mimuw.edu.pl/~janowska/PW-LAB/05-java.util.concurrent/lab05.html -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <meta name="generator" content="pandoc">
+  <title>Pakiet java.util.concurrent (część 2)</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+  </style>
+</head>
+<body>
+<div id="header">
+<h1 class="title">Pakiet <code>java.util.concurrent</code> (część 2)</h1>
+</div>
+<p>Na poprzednich zajęciach omawialiśmy narzędzia z pakietu <code>java.util.concurrent</code>, wspomagające programowanie współbieżne. Dziś będziemy kontynuowali ten temat.</p>
+<hr>
+<h1 id="kolejka-blokująca-blockingqueue">Kolejka blokująca (<code>BlockingQueue</code>)</h1>
+<p>Interfejs <code>java.util.concurrent.BlockingQueue&lt;E&gt;</code>, implementowany przez klasę <code>java.util.concurrent.LinkedBlockingQueue&lt;E&gt;</code>, rozwiązuje problem producentów i konsumentów za pomocą blokującej kolejki porcji. Jego metoda</p>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="dt">void</span> <span class="fu">put</span>(E e) <span class="kw">throws</span> <span class="bu">InterruptedException</span></code></pre></div>
+<p>wstawia argument <code>e</code> na koniec kolejki. Metoda</p>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java">E <span class="fu">take</span>() <span class="kw">throws</span> <span class="bu">InterruptedException</span></code></pre></div>
+<p>wstrzymuje wykonujący ją wątek do chwili, gdy kolejka będzie niepusta, a następnie pobiera z niej pierwszy element.</p>
+<h2 id="przykład-4">Przykład 4</h2>
+<p>Program <a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/05-java.util.concurrent/przyklady/Przyk%C5%82ad4BlockingQueue.java" class="uri">przyklady/Przykład4BlockingQueue.java</a> demonstruje zastosowanie kolejki blokującej.</p>
+<h2 id="zadanie-4">Zadanie 4</h2>
+<p>W rozwiązaniach zadań z poprzednich zajęć wiersz macierzy był sumowany po obliczeniu wszystkich elementów.</p>
+<h3 id="polecenie">Polecenie</h3>
+<p>Zmodyfikuj rozwiązanie zadania trzeciego, umożliwiając rozpoczęcie sumowania wiersza zanim wszystkie jego elementy zostaną obliczone.</p>
+<h3 id="wskazówka">Wskazówka</h3>
+<p>Wątek sumujący należy zsynchronizować z wątkami liczącymi elementy macierzy, przekazując mu dane przez kolejki blokujące.</p>
+<h1 id="współbieżna-mapa-concurrentmap">Współbieżna mapa (<code>ConcurrentMap</code>)</h1>
+<p>W klasie <code>java.util.Collections</code> jest metoda</p>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="dt">static</span> &lt;K, V&gt; <span class="bu">Map</span>&lt;K, V&gt; <span class="fu">synchronizedMap</span>(<span class="bu">Map</span>&lt;K, V&gt; m)</code></pre></div>
+<p>która daje mapę synchronizowaną będącą opakowaniem mapy <code>m</code>. Zapewnia ona bezpieczeństwo dla programów wielowątkowych, wykonując wszystkie operacje w sekcji krytycznej.</p>
+<p>Klasa <code>java.util.concurrent.ConcurrentHashMap&lt;K, V&gt;</code>, implementująca interfejs współbieżnej mapy <code>java.util.concurrent.ConcurrentMap&lt;K, V&gt;</code>, również zapewnia poprawność działania w programach wielowątkowych. Dzięki zastosowaniu odpowiednich algorytmów pozwala ona jednak, gdy jest to możliwe, na współbieżne wykonanie metod.</p>
+<p>Współbieżne mapy, oprócz implementacji interfejsu <code>java.util.Map&lt;K, V&gt;</code>, mają też metodę</p>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java">V <span class="fu">putIfAbsent</span>(K key, V value)</code></pre></div>
+<p>która wykonuje operację</p>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="kw">return</span> (map.<span class="fu">containsKey</span>(key)) ? map.<span class="fu">get</span>(key) : map.<span class="fu">put</span>(key, value);</code></pre></div>
+<p>gwarantując jej niepodzielność.</p>
+<h2 id="przykład-5">Przykład 5</h2>
+<p>Program <a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/05-java.util.concurrent/przyklady/Przyk%C5%82ad5ConcurrentMap.java" class="uri">przyklady/Przykład5ConcurrentMap.java</a> demonstruje zastosowanie współbieżnej mapy. Mapa list jest w nim budowana w sposób leniwy.</p>
+<h2 id="zadanie-5">Zadanie 5</h2>
+<p>W rozwiązaniu poprzedniego zadania kolejki blokujące dla wszystkich wierszy były tworzone przed rozpoczęciem obliczeń i pamiętane aż do zakończenia działania programu.</p>
+<h3 id="polecenie-1">Polecenie</h3>
+<p>Zmodyfikuj program tak, by kolejkę blokującą dla wiersza budował po obliczeniu jego pierwszego elementu i zapominał o niej po zsumowaniu wiersza.</p>
+<h3 id="wskazówka-1">Wskazówka</h3>
+<p>Kolejki blokujące należy przechowywać we współbieżnej mapie.</p>
+<h1 id="zarządzanie-wątkami-executor">Zarządzanie wątkami (<code>Executor</code>)</h1>
+<p>Pakiet <code>java.util.concurrent</code> oferuje narzędzia do zarządzania pulami wątków, pozwalające na oddzielenie wątku od wykonywanej przez niego pracy.</p>
+<p>Pracę, która ma tylko efekty uboczne, reprezentuje obiekt klasy implementującej interfejs <code>java.lang.Runnable</code>. Praca, której efektem jest obliczenie wartości, jest reprezentowana przez obiekt klasy implementującej interfejs <code>java.util.concurrent.Callable&lt;V&gt;</code> z metodą</p>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java">V <span class="fu">call</span>() <span class="kw">throws</span> <span class="bu">Exception</span></code></pre></div>
+<p>W klasie <code>java.util.concurrent.Executors</code> metoda</p>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="dt">static</span> <span class="bu">ExecutorService</span> <span class="fu">newFixedThreadPool</span>(<span class="dt">int</span> nThreads)</code></pre></div>
+<p>daje obiekt klasy <code>java.util.concurrent.ExecutorService</code> reprezentujący pulę <code>nThreads</code> wątków.</p>
+<p>Pula wątków ma metodę</p>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java">&lt;V&gt; <span class="bu">Future</span>&lt;V&gt; <span class="fu">submit</span>(<span class="bu">Callable</span>&lt;V&gt; task)</code></pre></div>
+<p>zlecającą wykonanie obliczenia <code>task</code>. Daje ona obiekt klasy <code>java.util.concurrent.Future&lt;V&gt;</code> z metodą</p>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java">V <span class="fu">get</span>() <span class="kw">throws</span> <span class="bu">InterruptedException</span>, <span class="bu">ExecutionException</span></code></pre></div>
+<p>czekającą na zakończenie obliczenia i odczytującą jego wynik. Jeśli obliczenie zostało przerwane wyjątkiem, zgłaszany jest wyjątek klasy <code>java.util.concurrent.ExecutionException</code>.</p>
+<p>Pracę puli wątków kończy metoda</p>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="dt">void</span> <span class="fu">shutdown</span>()</code></pre></div>
+<h2 id="przykład-6">Przykład 6</h2>
+<p>Program <a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/05-java.util.concurrent/przyklady/Przyk%C5%82ad6Executor.java" class="uri">przyklady/Przykład6Executor.java</a> demonstruje zastosowanie puli wątków.</p>
+<h2 id="zadanie-6">Zadanie 6</h2>
+<p>W rozwiązaniach poprzednich zadań mieliśmy po jednym wątku liczącym elementy macierzy na każdą kolumnę.</p>
+<h3 id="polecenie-2">Polecenie</h3>
+<p>Napisz nową wersję programu, w której elementy macierzy będą liczone przez cztery wątki.</p>
+<h3 id="wskazówka-2">Wskazówka</h3>
+<p>Obliczenia należy zlecać czteroelementowej puli wątków. Synchronizację wątku sumującego z wątkami liczącymi elementy macierzy zapewni metoda <code>get()</code>.</p>
+
+
+</body></html>

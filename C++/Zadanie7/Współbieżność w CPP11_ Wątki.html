@@ -1,0 +1,701 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!-- saved from url=(0068)https://www.mimuw.edu.pl/~janowska/PW-LAB/07-cpp-watki/cpp-lab1.html -->
+<html xmlns="http://www.w3.org/1999/xhtml" lang="pl" xml:lang="pl"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Współbieżność w CPP11: Wątki</title>
+<!-- 2017-11-13 Mon 18:06 -->
+
+<meta name="generator" content="Org-mode">
+<meta name="author" content="Krzysztof Rządca">
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { color: green; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: visible;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  pre.src-sh:before    { content: 'sh'; }
+  pre.src-bash:before  { content: 'sh'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-R:before     { content: 'R'; }
+  pre.src-perl:before  { content: 'Perl'; }
+  pre.src-java:before  { content: 'Java'; }
+  pre.src-sql:before   { content: 'SQL'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.right  { text-align: center;  }
+  th.left   { text-align: center;   }
+  th.center { text-align: center; }
+  td.right  { text-align: right;  }
+  td.left   { text-align: left;   }
+  td.center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara:nth-child(2) { display: inline; }
+  .footpara { display: block; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  /*]]>*/-->
+</style>
+<link href="./Współbieżność w CPP11_ Wątki_files/cpp-theme.css" rel="stylesheet">
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2013 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">Współbieżność w CPP11: Wątki</h1>
+<div id="table-of-contents">
+<h2>Spis treści</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/07-cpp-watki/cpp-lab1.html#sec-1">1. Instrukcje techniczne</a></li>
+<li><a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/07-cpp-watki/cpp-lab1.html#sec-2">2. Tworzenie wątków</a></li>
+<li><a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/07-cpp-watki/cpp-lab1.html#sec-3">3. join/detach</a></li>
+<li><a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/07-cpp-watki/cpp-lab1.html#sec-4">4. Przekazywanie parametrów</a></li>
+<li><a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/07-cpp-watki/cpp-lab1.html#sec-5">5. Pobieranie wyników</a></li>
+<li><a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/07-cpp-watki/cpp-lab1.html#sec-6">6. Zadanie: zlicz słowa</a></li>
+<li><a href="https://www.mimuw.edu.pl/~janowska/PW-LAB/07-cpp-watki/cpp-lab1.html#sec-7">7. Bibliografia</a></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> Instrukcje techniczne</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+Do kompilacji będziemy wykorzystywać program <code>cmake</code>. 
+Przykładowe programy wymagają aktualnego kompilatora C++, np. GCC w wersji 7 (ale już nie clang 9). 
+W osx musisz zacząć od instalacji i skonfigurowania GCC, np. za pomocą homebrew:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-bash">brew install gcc
+brew link gcc
+ln -s /usr/local/bin/gcc-7 /usr/local/bin/gcc
+ln -s /usr/local/bin/g++-7 /usr/local/bin/g++
+export CXX=g++ # CXX, CC env variables must be set before invoking cmake
+export CC=gcc
+</pre>
+</div>
+
+<p>
+Instrukcje
+budowy projektu są w pliku <code>CMakeLists.txt</code>. 
+<code>cmake ..</code> generuje plik <code>Makefile</code>, który następnie wykorzystywany jest
+przez standardowy <code>make</code>. Krótka instrukcja:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-bash">cd cpp-lab1
+mkdir build # out-of-source builds
+cd build
+cmake .. # generates Makefile in cpp-lab1/build to compile sources from cpp-lab1
+make # build
+</pre>
+</div>
+
+<p>
+<code>cmake ..</code> musisz uruchomić tylko za pierwszym razem, po stworzeniu katalogu <code>build/</code>.
+<code>make</code> uruchamiasz przy zmianie plików źródłowych lub zmianie instrukcji budowania.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> Tworzenie wątków</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+Obiekt klasy <code>std::thread</code> reprezentuje wątek. Wątek zaczyna wykonywać się po zakończeniu konstruktora. Konstruktor zadeklarowany jest jako <code>template&lt; class Function, class... Args &gt;
+explicit thread( Function&amp;&amp; f, Args&amp;&amp;... args )</code>.
+</p>
+
+<p>
+thread.cpp
+</p>
+<div class="org-src-container">
+
+<pre class="src src-cpp"><span class="org-preprocessor">#include</span> <span class="org-string">&lt;thread&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;iostream&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;chrono&gt;</span><br>
+<br>
+<span class="org-type">void</span> <span class="org-function-name">f</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"f(): ensemble on est trop"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-constant">this_thread</span>::sleep_for(<span class="org-constant">std</span>::<span class="org-constant">chrono</span>::seconds(2));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"f() completes"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+}<br>
+<br>
+<span class="org-type">void</span> <span class="org-function-name">g</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"g(): ensemble on est trop"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-constant">this_thread</span>::sleep_for(<span class="org-constant">std</span>::<span class="org-constant">chrono</span>::seconds(5));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"g() completes"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+}<br>
+<br>
+<span class="org-type">int</span> <span class="org-function-name">main</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"tout seul on n'est rien"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">thread</span> <span class="org-variable-name">t1</span>{f}; <span class="org-comment-delimiter">// </span><span class="org-comment">creates a thread executing function f</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">thread</span> <span class="org-variable-name">t2</span>{g}; <span class="org-comment-delimiter">// </span><span class="org-comment">creates another thread executing function g</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"main() completes"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+}<br>
+<p></p>
+</pre>
+</div>
+
+<p>
+Powyższy kod co prawda tworzy dwa wątki, ale proces główny kończy
+się, zanim oba wątki skończą pracę. 
+Wraz z zakończeniem głównego wątku, program wkracza w zachowanie
+nieokreślone przez standard cpp. W tej sytuacji system operacyjny
+<span class="underline">zwykle</span> kończy pozostałe wątki i zwalnia ich zasoby - ale nie należy
+na tym polegać.
+</p>
+
+<p>
+Dlatego trzeba zlecić wątkowi głównemu poczekanie na zakończenie stworzonych wątków <code>t1</code> i <code>t2</code>.
+</p>
+
+<p>
+thread-join.cpp
+</p>
+<div class="org-src-container">
+
+<pre class="src src-cpp"><span class="org-type">int</span> <span class="org-function-name">main</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"tout seul on n'est rien"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">thread</span> <span class="org-variable-name">t1</span>{f}; <span class="org-comment-delimiter">// </span><span class="org-comment">creates a thread executing function f</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">thread</span> <span class="org-variable-name">t2</span>{g}; <span class="org-comment-delimiter">// </span><span class="org-comment">creates another thread executing function g</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;t1.join(); <span class="org-comment-delimiter">// </span><span class="org-comment">wait for t1 to complete</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;t2.join(); <span class="org-comment-delimiter">// </span><span class="org-comment">wait for t2 to complete</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"main() completes"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+}<br>
+<p></p>
+</pre>
+</div>
+
+<p>
+Dodaj trzeci wątek do powyższego przykładu.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> join/detach</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+Wątek w cpp jest w jednym z dwóch stanów: podłączalny (joinable) albo
+nie podłączalny (unjoinable). 
+Jeśli wątek <code>t</code> jest podłączalny, by zwolnić zasoby używane przez <code>t</code>
+po zakończeniu jego pracy, inny wątek musi podłączyć się do <code>t</code>
+wywołując
+operację <code>t.join()</code>.
+Wywołanie <code>t.join()</code> kilkukrotnie lub wywołanie <code>t.join()</code> gdy <code>t</code> nie
+jest podłączalny jest błędem. 
+Stan wątku zwraca metoda <code>t.joinable()</code>.
+</p>
+
+<p>
+Destruktor obiektu wątku <code>t</code> skończy proces (przez <code>std::terminate</code>)
+jeśli wątek <code>t</code> był podłączalny, ale nikt nie wywołał
+<code>t.join()</code>.
+</p>
+
+<p>
+Odłączając wątek od jego obiektu (<code>t.detach()</code>), tworzymy wątek-demona. Po zakończeniu
+takiego wątku, system operacyjny automatycznie zwalnia jego zasoby.
+</p>
+
+<p>
+thread-detached.cpp
+</p>
+<div class="org-src-container">
+
+<pre class="src src-cpp"><span class="org-preprocessor">#include</span> <span class="org-string">&lt;thread&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;iostream&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;chrono&gt;</span><br>
+<br>
+<span class="org-type">void</span> <span class="org-function-name">f</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"f() starts"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-constant">this_thread</span>::sleep_for(<span class="org-constant">std</span>::<span class="org-constant">chrono</span>::seconds(2));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"f() completes"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+}<br>
+<br>
+<span class="org-type">int</span> <span class="org-function-name">main</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"main() starts"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;{ <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">thread</span> <span class="org-variable-name">t1</span>{f};<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-comment-delimiter">// </span><span class="org-comment">try to comment out the following line</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t1.detach();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-comment-delimiter">// </span><span class="org-comment">if t1 is joinable, destructor of t1 executes std::terminate!</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"main() sleeps"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-constant">this_thread</span>::sleep_for(<span class="org-constant">std</span>::<span class="org-constant">chrono</span>::seconds(10));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"main() completes"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+}<br>
+<p></p>
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>Zakomentuj <code>t1.detach()</code> i sprawdź zachowanie programu
+</li>
+<li>Zwiększ czas działania <code>t1</code>. Czy odłączony wątek skończy się wraz z końcem procesu?
+</li>
+</ul>
+
+<p>
+Gdy struktura programu jest złożona, zagwarantowanie wykonania
+<code>join()</code> przy wszystkich przebiegach może być trudne. Prostym sposobem
+rozwiązania tego problemu jest obudowanie wątku klasą-kontenerem,
+który, podczas destrukcji, wywoła <code>join</code> albo <code>detach</code> (kod za Scott
+Meyers, Effective Modern C++, a pomysł realizuję  <a href="https://en.wikipedia.org/wiki/Resource_Acquisition_Is_Initialization">RAII</a>, resource acquisition is initialization).
+</p>
+
+<p>
+thread-raii.cpp
+</p>
+<div class="org-src-container">
+
+<pre class="src src-cpp"><span class="org-comment-delimiter">// </span><span class="org-comment">code adopted from Scott Meyers, Effective Modern C++</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;thread&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;iostream&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;chrono&gt;</span><br>
+<br>
+<span class="org-keyword">class</span> <span class="org-type">ThreadRAII</span> {<br>
+<span class="org-keyword">public</span>:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">enum</span> <span class="org-keyword">class</span> <span class="org-type">DtorAction</span> { <span class="org-variable-name">join</span>, <span class="org-variable-name">detach</span> };<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-function-name">ThreadRAII</span>(<span class="org-constant">std</span>::<span class="org-type">thread</span>&amp;&amp; <span class="org-variable-name">t</span>, <span class="org-variable-name">DtorAction</span> a)&nbsp;&nbsp;<span class="org-comment-delimiter">// </span><span class="org-comment">in dtor, take</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: action(a), <span class="org-type">t</span>(<span class="org-constant">std</span>::<span class="org-variable-name">move</span>(<span class="org-type">t</span>)) {}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;~<span class="org-function-name">ThreadRAII</span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">if</span> (t.joinable()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">if</span> (action == <span class="org-constant">DtorAction</span>::join) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t.join();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} <span class="org-keyword">else</span> {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t.detach();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">thread</span>&amp; <span class="org-function-name">get</span>() { <span class="org-keyword">return</span> t; }<br>
+<span class="org-keyword">private</span>:<br>
+&nbsp;&nbsp;<span class="org-type">DtorAction</span> <span class="org-variable-name">action</span>;<br>
+&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">thread</span> <span class="org-variable-name">t</span>;<br>
+};<br>
+<br>
+<span class="org-type">void</span> <span class="org-function-name">f</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"f() starts"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-constant">this_thread</span>::sleep_for(<span class="org-constant">std</span>::<span class="org-constant">chrono</span>::seconds(2));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"f() completes"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+}<br>
+<br>
+<span class="org-type">int</span> <span class="org-function-name">main</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"main() starts"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-function-name">ThreadRAII</span>(<span class="org-constant">std</span>::thread{f}, <span class="org-constant">ThreadRAII</span>::<span class="org-constant">DtorAction</span>::join);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"main() sleeps"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-constant">this_thread</span>::sleep_for(<span class="org-constant">std</span>::<span class="org-constant">chrono</span>::seconds(10));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"main() completes"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+}<br>
+<p></p>
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>Zmień akcję przy destrukcji na detach.
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4"><span class="section-number-2">4</span> Przekazywanie parametrów</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+Parametry możemy przekazać do wątku na dwa sposoby: (1) poprzez argumenty konstruktora; (2) przez argumenty funkcji lambda (i wtedy konstruktor ma tylko jeden argument: tę funkcję lambda).
+</p>
+
+<p>
+args.cpp
+</p>
+<div class="org-src-container">
+
+<pre class="src src-cpp"><span class="org-preprocessor">#include</span> <span class="org-string">&lt;thread&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;iostream&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;chrono&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;string&gt;</span><br>
+<br>
+<span class="org-type">void</span> <span class="org-function-name">f</span>(<span class="org-type">int</span> <span class="org-variable-name">timeout</span>) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"f() starts; my arg is "</span> &lt;&lt; timeout &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-constant">this_thread</span>::sleep_for(<span class="org-constant">std</span>::<span class="org-constant">chrono</span>::seconds(timeout));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"f() completes; my arg is "</span> &lt;&lt; timeout &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+}<br>
+<br>
+<span class="org-type">int</span> <span class="org-function-name">main</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"main() starts"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-type">int</span> <span class="org-variable-name">num</span> = 4;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">thread</span> <span class="org-variable-name">t1</span>{f, num}; <span class="org-comment-delimiter">// </span><span class="org-comment">thread arguments as constructor arguments</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">thread</span> <span class="org-variable-name">t2</span>{[]{ f(3); }}; <span class="org-comment-delimiter">// </span><span class="org-comment">[]{ f(5);} is a lambda (anonymous function) that executes f(5)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;num = 6;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">thread</span> <span class="org-variable-name">t3</span>{[num] { f(num); }}; <span class="org-comment-delimiter">// </span><span class="org-comment">num is captured by value in lambda</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;t1.join();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;t2.join(); <br>
+&nbsp;&nbsp;&nbsp;&nbsp;t3.join(); <br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"main() completes"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+}<br>
+<p></p>
+</pre>
+</div>
+
+<p>
+Do funkcji dodaj drugi argument: napis (o typie <code>const std::string</code>). W funkcji wydrukuj ten napis.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5"><span class="section-number-2">5</span> Pobieranie wyników</h2>
+<div class="outline-text-2" id="text-5">
+</div><div id="outline-container-sec-5-1" class="outline-3">
+<h3 id="sec-5-1"><span class="section-number-3">5.1</span> przez referencję</h3>
+<div class="outline-text-3" id="text-5-1">
+<p>
+Argumentem wątku jest referencja do zmiennej, w której zapisze on
+wynik. Ponieważ konstruktor <code>std::thread</code> przekazuje parametry przez
+wartość, musimy obejść to ograniczenie na jeden z dwóch sposobów:
+</p>
+
+<ul class="org-ul">
+<li>przez funkcję lambda, której argument łączymy przez referencję z
+zewnętrzną zmienną, np.: <code>std::thread t1{[s1, &amp;len1]{ f(s1, len1);
+  }};</code> (len jest przekazane przez referencję);
+</li>
+<li>opakowując zmienną w <code>std::ref</code>, np. <code>std::thread t3{f, s3, std::ref(len3)};</code>
+</li>
+</ul>
+
+
+<p>
+res.cpp
+</p>
+<div class="org-src-container">
+
+<pre class="src src-cpp"><span class="org-preprocessor">#include</span> <span class="org-string">&lt;thread&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;iostream&gt;</span><br>
+<br>
+<span class="org-type">void</span> <span class="org-function-name">f</span>(<span class="org-keyword">const</span> <span class="org-constant">std</span>::<span class="org-type">string</span>&amp; <span class="org-variable-name">s</span>, <span class="org-type">unsigned</span> <span class="org-type">int</span>&amp; <span class="org-variable-name">res</span>) { <span class="org-comment-delimiter">// </span><span class="org-comment">res is a placeholder for the result</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;res = s.length();<br>
+}<br>
+<br>
+<span class="org-type">int</span> <span class="org-function-name">main</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-type">unsigned</span> <span class="org-type">int</span> <span class="org-variable-name">len1</span>{0}, len2{0}, len3{0};<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">const</span> <span class="org-constant">std</span>::<span class="org-type">string</span> <span class="org-variable-name">s1</span>{<span class="org-string">"na szyi zyrafy"</span>};<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">const</span> <span class="org-constant">std</span>::<span class="org-type">string</span> <span class="org-variable-name">s2</span>{<span class="org-string">"pchla zaczyna wierzyc"</span>};<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">const</span> <span class="org-constant">std</span>::<span class="org-type">string</span> <span class="org-variable-name">s3</span>{<span class="org-string">"w niesmiertelnosc"</span>};<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"main() starts"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">thread</span> <span class="org-variable-name">t1</span>{[s1, &amp;len1]{ f(s1, len1); }};&nbsp;&nbsp;<span class="org-comment-delimiter">// </span><span class="org-comment">lambda captures len1 by reference and s by value, hence [&amp;len1]</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">thread</span> <span class="org-variable-name">t2</span>{[&amp;s2, &amp;len2]{ f(s2, len2); }}; <span class="org-comment-delimiter">// </span><span class="org-comment">here both variables captured by reference</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">thread</span> <span class="org-variable-name">t3</span>{f, s3, <span class="org-constant">std</span>::ref(len3)}; <span class="org-comment-delimiter">// </span><span class="org-comment">using a std::ref wrapper, as std::thread constructor takes a template parameter by value</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;t1.join();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;t2.join();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;t3.join();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"len1: "</span>&lt;&lt;len1&lt;&lt;<span class="org-string">" correct? "</span>&lt;&lt; (len1==s1.length()) &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"len2: "</span>&lt;&lt;len2&lt;&lt;<span class="org-string">" correct? "</span>&lt;&lt; (len2==s2.length()) &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"len3: "</span>&lt;&lt;len3&lt;&lt;<span class="org-string">" correct? "</span>&lt;&lt; (len3==s3.length()) &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"main() completes"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+}<br>
+<p></p>
+</pre>
+</div>
+
+<p>
+Do funkcji dodaj drugi rezultat: pierszy znak w napisie.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-5-2" class="outline-3">
+<h3 id="sec-5-2"><span class="section-number-3">5.2</span> przez obietnice (promise / future)</h3>
+<div class="outline-text-3" id="text-5-2">
+<p>
+Mechanizm promise/future jest zalecanym sposobem na przekazywanie
+ rezultatów z wątku. Umożliwia czekanie na konkretny rezultat, a nie
+ tylko na zakończenie wątku.
+Mechanizm ten realizowany jest za pomocą obiektu klasy <code>std::promise</code> (<code>template&lt; class R &gt; class std::promise&lt;R&amp;&gt;</code>) z którego następnie pobierany jest rezultat reprezentowany przez obiekt klasy <code>std::future</code> <code>(template&lt; class T &gt; class std::future&lt;T&amp;&gt;</code>).
+</p>
+
+<p>
+promise.cpp
+</p>
+<div class="org-src-container">
+
+<pre class="src src-cpp"><span class="org-preprocessor">#include</span> <span class="org-string">&lt;thread&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;future&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;iostream&gt;</span><br>
+<br>
+<span class="org-type">void</span> <span class="org-function-name">f</span>(<span class="org-keyword">const</span> <span class="org-constant">std</span>::<span class="org-type">string</span>&amp; <span class="org-variable-name">s</span>, <span class="org-constant">std</span>::<span class="org-type">promise</span>&lt;<span class="org-type">unsigned</span> <span class="org-type">int</span>&gt;&amp; <span class="org-variable-name">len_promise</span>) { <span class="org-comment-delimiter">// </span><span class="org-comment">len_promise is a placeholder for the result</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-comment-delimiter">// </span><span class="org-comment">warning: std::cout is thread-safe, but</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-comment-delimiter">// </span><span class="org-comment">using std::cout in multiple threads may result in mixed output</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-comment-delimiter">// </span><span class="org-comment">see log.h for a solution</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"f() starts for "</span> &lt;&lt; s &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-comment-delimiter">// </span><span class="org-comment">we simulate some processing here</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-constant">this_thread</span>::sleep_for(<span class="org-constant">std</span>::<span class="org-constant">chrono</span>::seconds(2));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"f() result is ready for "</span> &lt;&lt; s &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;len_promise.set_value(s.length());<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-comment-delimiter">// </span><span class="org-comment">we simulate cleanup here</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-constant">this_thread</span>::sleep_for(<span class="org-constant">std</span>::<span class="org-constant">chrono</span>::seconds(5));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"f() completes for "</span> &lt;&lt; s &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+}<br>
+<br>
+<span class="org-type">int</span> <span class="org-function-name">main</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-type">unsigned</span> <span class="org-type">int</span> <span class="org-variable-name">len1</span>{0}, len2{0};<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">promise</span>&lt;<span class="org-type">unsigned</span> <span class="org-type">int</span>&gt; <span class="org-variable-name">len_promise1</span>, <span class="org-variable-name">len_promise2</span>; <span class="org-comment-delimiter">// </span><span class="org-comment">promise for the result</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">future</span>&lt;<span class="org-type">unsigned</span> <span class="org-type">int</span>&gt; <span class="org-variable-name">len_future1</span> = len_promise1.get_future(); <span class="org-comment-delimiter">// </span><span class="org-comment">represents the promised result</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">future</span>&lt;<span class="org-type">unsigned</span> <span class="org-type">int</span>&gt; <span class="org-variable-name">len_future2</span> = len_promise2.get_future();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">const</span> <span class="org-constant">std</span>::<span class="org-type">string</span> <span class="org-variable-name">s1</span>{<span class="org-string">"najkrwawsza to tragedia"</span>};<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">const</span> <span class="org-constant">std</span>::<span class="org-type">string</span> <span class="org-variable-name">s2</span>{<span class="org-string">"gdy krew zalewa widzow"</span>};<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"main() starts"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">thread</span> <span class="org-variable-name">t1</span>{[&amp;s1, &amp;len_promise1]{ f(s1, len_promise1); }};<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-constant">this_thread</span>::sleep_for(<span class="org-constant">std</span>::<span class="org-constant">chrono</span>::seconds(1));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">thread</span> <span class="org-variable-name">t2</span>{[&amp;s2, &amp;len_promise2]{ f(s2, len_promise2); }};<br>
+&nbsp;&nbsp;&nbsp;&nbsp;len1 = len_future1.get(); <span class="org-comment-delimiter">// </span><span class="org-comment">wait until len_promise1.set_value()</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"len1: "</span>&lt;&lt;len1&lt;&lt;<span class="org-string">" correct? "</span>&lt;&lt; (len1==s1.length()) &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;len2 = len_future2.get();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"len2: "</span>&lt;&lt;len2&lt;&lt;<span class="org-string">" correct? "</span>&lt;&lt; (len2==s2.length()) &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;t1.join();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;t2.join();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"main() completes"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+}<br>
+<p></p>
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>Do funkcji dodaj drugi rezultat: pierszy znak w napisie.
+</li>
+<li>Spróbuj drugi raz ustawić wartość <code>len_promise</code>.
+</li>
+<li>Spróbuj nie ustawiać wartości <code>len_promise</code>.
+</li>
+<li>Spróbuj drugi raz odczytać wartość <code>len_future</code>.
+</li>
+</ul>
+
+<p>
+Mechanizm promise/future w elegancki sposób rozwiązuje problem
+wyjątków wygenerowanych w wątku. Wątek przekazuje wyjątek ustawiając
+<code>promise.set_exception()</code>; wyjątek ten jest następnie generowany w
+wątku, który usiłuje odczytać stan future.
+</p>
+
+<p>
+promise-exception.cpp
+</p>
+<div class="org-src-container">
+
+<pre class="src src-cpp"><span class="org-preprocessor">#include</span> <span class="org-string">&lt;thread&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;future&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;iostream&gt;</span><br>
+<span class="org-preprocessor">#include</span> <span class="org-string">&lt;exception&gt;</span><br>
+<br>
+<span class="org-type">void</span> <span class="org-function-name">f</span>(<span class="org-keyword">const</span> <span class="org-constant">std</span>::<span class="org-type">string</span>&amp; <span class="org-variable-name">s</span>, <span class="org-constant">std</span>::<span class="org-type">promise</span>&lt;<span class="org-type">int</span>&gt;&amp; <span class="org-variable-name">len_promise</span>) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"f() starts for "</span> &lt;&lt; s &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">try</span> {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">if</span> (s == <span class="org-string">"nie deptac trawnikow"</span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">throw</span> <span class="org-constant">std</span>::runtime_error(<span class="org-string">"deptac!"</span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;len_promise.set_value(s.length());<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">catch</span> (...) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">try</span> {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;len_promise.set_exception(<span class="org-constant">std</span>::current_exception());<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">catch</span> (...) {} <span class="org-comment-delimiter">// </span><span class="org-comment">ignore exceptions thrown in set_exception</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+}<br>
+<br>
+<span class="org-type">int</span> <span class="org-function-name">main</span>() {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-type">unsigned</span> <span class="org-type">int</span> <span class="org-variable-name">len1</span>{0}, len2{0};<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">promise</span>&lt;<span class="org-type">int</span>&gt; <span class="org-variable-name">len_promise1</span>, <span class="org-variable-name">len_promise2</span>; <span class="org-comment-delimiter">// </span><span class="org-comment">promise for the result</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">const</span> <span class="org-constant">std</span>::<span class="org-type">string</span> <span class="org-variable-name">s1</span>{<span class="org-string">"nie wychylac sie"</span>};<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">const</span> <span class="org-constant">std</span>::<span class="org-type">string</span> <span class="org-variable-name">s2</span>{<span class="org-string">"nie deptac trawnikow"</span>};<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"main() starts"</span> &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">thread</span> <span class="org-variable-name">t1</span>{[&amp;s1, &amp;len_promise1]{ f(s1, len_promise1); }};<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">thread</span> <span class="org-variable-name">t2</span>{[&amp;s2, &amp;len_promise2]{ f(s2, len_promise2); }};<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">try</span> {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">future</span>&lt;<span class="org-type">int</span>&gt; <span class="org-variable-name">len_future1</span> = len_promise1.get_future();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;len1 = len_future1.get(); <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"len1: "</span>&lt;&lt;len1&lt;&lt;<span class="org-string">" correct? "</span>&lt;&lt; (len1==s1.length()) &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::<span class="org-type">future</span>&lt;<span class="org-type">int</span>&gt; <span class="org-variable-name">len_future2</span> = len_promise2.get_future();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;len2 = len_future2.get(); <span class="org-comment-delimiter">// </span><span class="org-comment">if an exception is set, it will be thrown here</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"len2: "</span>&lt;&lt;len2&lt;&lt;<span class="org-string">" correct? "</span>&lt;&lt; (len2==s2.length()) &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-keyword">catch</span>(<span class="org-keyword">const</span> <span class="org-constant">std</span>::<span class="org-type">exception</span>&amp; <span class="org-variable-name">e</span>) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="org-constant">std</span>::cout &lt;&lt; <span class="org-string">"exception from a thread: "</span>&lt;&lt; e.what() &lt;&lt; <span class="org-constant">std</span>::endl;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;t1.join();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;t2.join();<br>
+}<br>
+<p></p>
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-6" class="outline-2">
+<h2 id="sec-6"><span class="section-number-2">6</span> Zadanie: zlicz słowa</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+Napisz wielowątkowy program, który zliczy ile w sumie razy wystąpiło
+dane słowo w liście plików tekstowych.
+Wejście programu (na stdin) wygląda następująco:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-text">szukane_słowo<br>
+liczba_plików<br>
+nazwa_pliku1<br>
+nazwa_pliku2<br>
+...<br>
+<p></p>
+</pre>
+</div>
+
+<p>
+Twój program powinien tworzyć stałą liczbę wątków. Wątki powinny
+statycznie podzielić się pracą (każdy powinien otrzymać możliwie
+podobną liczbę nazw plików). Wątki powinny przekazać
+rezultaty do wątku głównego używając obietnic.
+</p>
+
+<p>
+Kilka plików tekstowych - sztuk Szekspira udostępnionych przez Projekt
+Gutenberg - znajdziesz w <code>data-txt</code>.
+</p>
+
+<p>
+Sekwencyjną implementację znajdziesz w <code>grep-seq.cpp</code>.
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-sec-7" class="outline-2">
+<h2 id="sec-7"><span class="section-number-2">7</span> Bibliografia</h2>
+<div class="outline-text-2" id="text-7">
+<ul class="org-ul">
+<li>Scott Meyers, Effective Modern C++, O'Reilly 2015, Items 37, 39
+</li>
+<li><a href="https://isocpp.org/wiki/faq/cpp11-library-concurrency">https://isocpp.org/wiki/faq/cpp11-library-concurrency</a>
+</li>
+<li><a href="http://stackoverflow.com/questions/22803600/when-should-i-use-stdthreaddetach">http://stackoverflow.com/questions/22803600/when-should-i-use-stdthreaddetach</a>
+</li>
+<li><a href="http://stackoverflow.com/questions/19744250/what-happens-to-a-detached-thread-when-main-exits">http://stackoverflow.com/questions/19744250/what-happens-to-a-detached-thread-when-main-exits</a>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="date">Data: 2017/11/13</p>
+<p class="author">Autor: Krzysztof Rządca</p>
+<p class="date">Created: 2017-11-13 Mon 18:06</p>
+<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 25.1.1 (<a href="http://orgmode.org/">Org</a> mode 8.2.10)</p>
+<p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+
+
+</body></html>

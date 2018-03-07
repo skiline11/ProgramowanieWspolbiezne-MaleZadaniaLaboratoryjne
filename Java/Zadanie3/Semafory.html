@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+  <title>Semafory</title>
+  <meta name="generator" content="Amaya, see http://www.w3.org/Amaya/" />
+</head>
+
+<body>
+<h1>Semafory w javie</h1>
+
+<p>Pełny opis można znaleźć w <a
+href="https://docs.oracle.com/javase/7/docs/api/java/util/concurrent/Semaphore.html">https://docs.oracle.com/javase/7/docs/api/java/util/concurrent/Semaphore.html</a></p>
+
+<h2>Pliki z przykładami</h2>
+
+<p>Załączone przykłady ilustrują opisane mechanizmy.</p>
+<ul>
+  <li><code>SemaphoreTest_1.java</code>, <code>SemaphoreTest_2.java,
+    SemaphoreTest_3.java</code> - trzy bardzo proste programy ilustrujące
+    kontrolę dostępu do sekcji krytycznej.</li>
+  <li><code>ProdCon_1.java</code> - prosta implementacja problemu
+    producenta-konsumenta w wersji z buforem jednoelementowym. </li>
+  <li><code>ProdCon_2.java</code> - implementacja problemu
+    producenta-konsumenta w wersji z buforem o ograniczonej, stałej
+    pojemności. Bufor zaimplementowany został tradycyjnie, w postaci tablicy.
+    Poza ochroną bufora wprowadzona została ochrona pewnych innych
+    współdzielonych zmiennych.</li>
+</ul>
+
+<p></p>
+
+<h2>Pojęcie semafora</h2>
+
+<p>Pojęcie semafora abstrakcyjnego zostało wprowadzone na wykładzie. Tutaj
+będziemy zajmować się implementacją mechanizmu semaforowego dostępną w
+pakiecie <code>java.util.concurrent. </code>Implementacja ta udostępnia
+mechanizm bardzo podobny do mechanizmu klasycznego semafora ogólnego. </p>
+
+<h2>Klasa <code>Semaphore</code> pakietu <code>concurrent</code></h2>
+
+<h3>Uwaga terminologiczna</h3>
+
+<p>W przypadku semaforów javowych często używana jest specyficzna
+terminologia, inna niż w przypadku semaforów abstrakcyjnych. Semafor
+opisywany jest jako obiekt posiadający pewną liczbę pozwoleń, które
+udostępniane są wątkom. O ile pozwolenie jest dostępne (wartość semafora
+jest dodatnia), wątek pobiera je (wartość semafora zmniejsza się o 1) i
+działa dalej. O ile pozwolenia nie są dostępne (wartość semafora równa
+zero), wątek czeka aż pozwolenie stanie się dostępne. Wydaje się, że taka
+terminologia dobrze oddaje intuicję związaną z pojęciem semafora. W
+niniejszym tekście będziemy jej używać zamiennie z terminologią
+tradycyjną.</p>
+
+<p></p>
+
+<h3>Tworzenie semafora</h3>
+
+<p>Klasa <code>Semaphore</code> dysponuje dwoma konstruktorami. </p>
+<ul>
+  <li><code>Semaphore(int num) - </code>tworzącym semafor dysponujący
+    <code>num</code> pozwoleniami (o wartości początkowej określonej przez
+    <code>num)</code>, oraz</li>
+  <li><code>Semaphore(int num,boolean ho</code>w) - tworzącym semafor jak
+    wyżej<code>,</code> przy czym wartość <code>true </code>parametru
+    <code>how</code> zapewnia, że wątki czekające na podniesienie semafora
+    (na dostępność pozwolenia) będą budzone w kolejności w jakiej
+    wykonywały operację opuszczenia semafora (kolejka prosta).</li>
+</ul>
+
+<h3>Dostępne metody</h3>
+
+<p>Klasa <code>Semaphore</code> dysponuje publicznymi metodami pozwalającymi
+na wykonywanie rozmaitych operacji na semaforach. Szczegółowy opis działania
+wszystkich metod dostępny jest we wskazanej wyżej dokumentacji i tam należy
+zaglądać w przypadku jakichkolwiek wątpliwości.</p>
+
+<p>Metody, których wywołanie może spowodować zawieszenie wątku w
+oczekiwaniu na dostępność pozwolenia, mogą zgłaszać wyjątek
+<code>InterruptedException. </code></p>
+
+<p></p>
+
+<p>Metody odpowiadające dwóm klasycznym operacjom semaforowym to:</p>
+<ul>
+  <li><p><code>void acquire()</code> - wywołanie metody jest równoważne
+    klasycznej operacji P wykonanej na semaforze, na rzecz którego metoda
+    została wywołana,</p>
+  </li>
+  <li><code>void release()</code> - wywołanie tej metody jest równoważne
+    klasycznej operacji V() wykonanej na semaforze.</li>
+</ul>
+
+<p>Poza operacjami odpowiadającymi klasycznym operacjom semaforowym, klasa
+dysponuje wieloma innymi metodami znacznie poszerzającymi możliwości
+semaforów. </p>
+<ul>
+  <li><code>void acquire(int permits)</code> - operacja polegająca na
+    uzyskaniu określonej przez <code>permits</code> liczby zezwoleń, a w
+    sytuacji gdy nie są dostępne, na czekaniu na ich dostępność,</li>
+  <li><code>void release(int permits)</code> - operacja zwrotu
+    <code></code>określonej przez <code>permits</code> liczby zezwoleń.</li>
+</ul>
+
+<p>Kolejna grupa metod pozwala na próbę uzyskania zezwolenia/zezwoleń, przy
+czym ewentualny czas oczekiwania jest ograniczony. Zwracana wartość logiczna
+informuje o tym, czy próba się powiodła.</p>
+<ul>
+  <li><code>boolean tryAcquire() </code>- próba uzyskania jednego pozwolenia,
+    bez czekania,</li>
+  <li><code>boolean tryAcquire(int permits)</code> - próba uzyskania
+    określonej liczby pozwoleń, bez czekania,</li>
+  <li><code>boolean tryAcquire(long timeout, TimeUnit unit)</code> - próba
+    uzyskania jednego pozwolenia z czekaniem przez określony czas (o ile
+    wątek nie został przerwany), </li>
+  <li><code>boolean tryAcquire(int permits, long timeout, TimeUnit unit)</code>
+    - próba uzyskania określonej liczby pozwoleń z czekaniem przez
+    określony czas (o ile wątek nie został przerwany).</li>
+</ul>
+
+<p>Następna grupa to metody pozwalające na ewentualne czekanie bez
+możliwości przerwania wątku.</p>
+<ul>
+  <li><code>void acquireUninterruptibly()</code></li>
+  <li><code>void acquireUninterruptibly(int permits)</code></li>
+</ul>
+
+<p>Wreszcie metody, których zasadniczym przeznaczeniem jest monitorowanie
+stanu systemu a nie synchronizacja.</p>
+<ul>
+  <li><code>int availablePermits()</code> - zwraca aktualną liczbę
+    dostępnych pozwoleń, </li>
+  <li><code>int drainPermits()</code> - pobiera i zwraca jako wynik wszystkie
+    dostępne pozwolenia,</li>
+  <li><code>protected Collection&lt;Thread&gt; getQueuedThreads()</code> -
+    zwraca kolekcję zawierającą wątki czekające na pozwolenie, </li>
+  <li><code>int getQueueLength</code><code>()</code> - zwraca przybliżoną
+    długość kolejki oczekujących wątków,</li>
+  <li><code>boolean hasQuuedThreads()</code> - sprawdza, czy jakieś wątki
+    czekają,</li>
+  <li><code>boolean isFair()</code> - zwraca informację, czy semafor ma
+    ustawiony atrybut sprawiedliwego budzenia,</li>
+  <li><code>protected void reducePermits(int reduction)</code> - redukuje
+    liczbę dostępnych pozwoleń,</li>
+  <li><code>String toString()</code> - wypisuje identyfikator i stan
+  semafora.</li>
+</ul>
+
+<h2>Wykorzystanie semaforów</h2>
+
+<p>Najprostszy przykład użycia semafora to kontrola dostępu do sekcji
+krytycznej.</p>
+
+<p></p>
+<pre><code>private void wzajemneWykluczanie() {</code>
+<code>   try {</code> 
+         <code>binarny.acquire();</code>
+<code>         //sekcja krytyczna</code>
+         <code>System.out.println(Thread.currentThread().getName() + " w sekcji krytycznej");</code>
+<code>         Thread.sleep(1000)</code>
+       <code>} catch (InterruptedException ie) {</code>
+             <code>ie.printStackTrace();</code>
+       <code>} finally {</code>
+             <code>binarny.release();</code>
+      
+       <code>System.out.println(Thread.currentThread().getName() + " poza sekcją krytyczną");</code>
+       <code>}</code>
+<code>} </code></pre>
+gdzie <code>binarny</code> jest semaforem o wartości początkowej 1. 
+
+<p></p>
+
+<h3>Potencjalne niebezpieczeństwa</h3>
+
+<p>Podobnie jak w przypadku większości mechanizmów synchronizacyjnych,
+również semafory wymagają zachowania pewnych zasad.</p>
+
+<p>Podstawowa zasada: <strong>zawsze</strong> zwracaj (<code>release</code>)
+to, co uzyskałeś(<code>acquire</code>). To zapewnia np. konstrukcja <code>try
+ ... finaly</code>. </p>
+
+<p>Nie zawsze jednak proste zliczanie operacji <code>acquire</code> i
+<code>release</code> wystarcza. Co się może zdarzyć, jeśli jeden wątek
+wykona sekwencję:</p>
+
+<p></p>
+
+<p><code>pierwszy.acquire();</code></p>
+
+<p><code>drugi.acquire();</code></p>
+
+<p>...</p>
+
+<p><code>drugi.release();</code></p>
+
+<p><code>pierwszy.release();</code></p>
+
+<p></p>
+
+<p>Drugi wątek natomiast zamieni kolejność semaforów:</p>
+
+<p></p>
+
+<p><p><code>drugi.acquire();</code></p>
+
+<p><code>pierwszy.acquire();</code></p>
+
+<p>...</p>
+
+<p><code>pierwszy.release();</code></p>
+</p>
+
+<p><code>drugi.release();</code></p>
+
+<p></p>
+
+<p>Tylko przypadek (czyli odpowiednio szczęśliwy przeplot) pozwala tutaj na
+uniknięcie blokady. </p>
+
+<h2>Zadanie</h2>
+
+<p>Zaimplementuj w javie, wykorzystując wątki i semafory problem śpiącego
+fryzjera. </p>
+
+<p>Zakład fryzjerski zatrudnia jednego fryzjera, który dysponuje jednym
+fotelem, oraz poczekalnią z pewną liczbą krzeseł. W chwili zakończenia
+strzyżenia klient opuszcza zakład natomiast fryzjer udaje się do poczekalni
+i sprawdza, czy czeka tam jakiś klient. Jeśli tak, zaprasza jednego na swój
+fotel i strzyże go. Jeśli nie ma czekających klientów usypia na fotelu.</p>
+
+<p>Każdy klient, po wejściu do zakładu sprawdza, co robi fryzjer. Jeśli
+ten  śpi, budzi go i siada na fotelu. Jeśli fryzjer strzyże kogoś, klient
+idzie do poczekalni i sprawdza, czy jest wolne krzesło. Jeśli tak, siada i
+czeka, jeśli nie, wychodzi.</p>
+
+<p>Uwagi:</p>
+<ol>
+  <li>Zarówno fryzjer, jak też każdy z klientów powinien zostać
+    zaimplementowany jako oddzielny wątek.</li>
+  <li>Do synchronizacji należy użyć semaforów.</li>
+  <li>Każdy z wątków powinien wypisywać w odpowiednich momentach stosowne
+    komunikaty, pozwalające na prześledzenie przebiegu programu.</li>
+  <li>Implementacja powinna zawierać metodę <code>main</code> ilustrującą
+    działanie tej implementacji.</li>
+</ol>
+
+<p></p>
+</body>
+</html>
